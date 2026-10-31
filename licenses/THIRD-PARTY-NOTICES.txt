@@ -1,0 +1,21 @@
+NMST Modded Save Cleaner uses the following third-party components.
+
+Fonts (SIL Open Font License 1.1, see OFL.txt)
+  Orbitron   - The Orbitron Project Authors, https://github.com/theleagueof/orbitron
+  Rajdhani   - Indian Type Foundry
+
+Libraries
+  Avalonia UI                MIT       https://github.com/AvaloniaUI/Avalonia
+  CommunityToolkit.Mvvm      MIT       https://github.com/CommunityToolkit/dotnet
+  K4os.Compression.LZ4       MIT       https://github.com/MiloszKrajewski/K4os.Compression.LZ4
+  NAudio                     MIT       https://github.com/naudio/NAudio
+  NAudio.Vorbis / NVorbis    MIT       https://github.com/naudio/Vorbis, https://github.com/NVorbis/NVorbis
+
+Game text
+  Quest, objective and location names shown in the app come from Cyberpunk 2077's own localisation files
+  (built by tools/build-names.js). Cyberpunk 2077 is a trademark of CD PROJEKT S.A. This app is an unofficial
+  fan tool and isn't affiliated with or endorsed by CD PROJEKT RED.
+
+Music
+  The five background tracks (Overdrive, Chrome Highway, Laser City, Turbo Heart, Neon Afterhours) are original,
+  synthesised for this app by tools/music/engine.js. No samples or third-party audio are used.

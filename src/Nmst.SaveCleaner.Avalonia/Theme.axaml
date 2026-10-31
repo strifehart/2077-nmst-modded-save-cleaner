@@ -1,0 +1,429 @@
+<!-- strifehart synthwave: black, hot-pink Orbitron headings with a neon glow, Rajdhani body text, cyan accents. Dark only. -->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Nmst.SaveCleaner.Avalonia"
+        xmlns:log="clr-namespace:Nmst.SaveCleaner.Core.Logging;assembly=Nmst.SaveCleaner.Core">
+  <Styles.Resources>
+    <FontFamily x:Key="BodyFont">avares://NMSTSaveCleaner/Assets/Fonts#Rajdhani</FontFamily>
+    <FontFamily x:Key="HeadFont">avares://NMSTSaveCleaner/Assets/Fonts#Orbitron</FontFamily>
+    <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas, Menlo, monospace</FontFamily>
+
+    <SolidColorBrush x:Key="Bg" Color="#07060b" />
+    <SolidColorBrush x:Key="Panel" Color="#0d0a15" />
+    <SolidColorBrush x:Key="Card" Color="#110d1b" />
+    <SolidColorBrush x:Key="CardHi" Color="#18122a" />
+    <SolidColorBrush x:Key="Line" Color="#2a2238" />
+    <SolidColorBrush x:Key="Text" Color="#efe9f7" />
+    <SolidColorBrush x:Key="Muted" Color="#9b90ad" />
+    <SolidColorBrush x:Key="Faint" Color="#6c6380" />
+    <SolidColorBrush x:Key="Pink" Color="#eb107e" />
+    <SolidColorBrush x:Key="PinkSoft" Color="#ffdaec" />
+    <SolidColorBrush x:Key="Purple" Color="#b63590" />
+    <SolidColorBrush x:Key="Cyan" Color="#00e5ff" />
+    <SolidColorBrush x:Key="Red" Color="#ff3b6b" />
+    <SolidColorBrush x:Key="RedBg" Color="#2a0c18" />
+    <SolidColorBrush x:Key="Amber" Color="#ffb020" />
+    <SolidColorBrush x:Key="AmberBg" Color="#2a1e08" />
+    <SolidColorBrush x:Key="Green" Color="#2cf5b0" />
+    <SolidColorBrush x:Key="GreenBg" Color="#08261d" />
+
+    <local:StateBrushConverter x:Key="StateBrush" />
+    <local:PathToBitmapConverter x:Key="PathToBitmap" />
+    <local:BoolToOpacityConverter x:Key="BoolToOpacity" />
+    <local:DiffBrushConverter x:Key="DiffBrush" />
+    <local:LogLevelBrushConverter x:Key="LevelBrush" />
+    <local:LogLevelBadgeConverter x:Key="LevelBadge" />
+    <local:LogLevelTextConverter x:Key="LevelText" />
+
+    <!-- one log line, shared by the docked log and the pop-out window: time · fixed-width level badge · message -->
+    <DataTemplate x:Key="LogEntryTemplate" x:DataType="log:LogEntry">
+      <Grid ColumnDefinitions="62,58,*" Margin="0,1">
+        <TextBlock Text="{Binding Time, StringFormat='{}{0:HH:mm:ss}'}" FontFamily="{StaticResource MonoFont}" FontSize="11"
+                   Foreground="{StaticResource Faint}" VerticalAlignment="Center" />
+        <Border Grid.Column="1" Background="{Binding Level, Converter={StaticResource LevelBadge}}" CornerRadius="3"
+                Padding="0,1" Margin="0,0,10,0" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Level, Converter={StaticResource LevelText}}" FontSize="10" FontWeight="Bold" LetterSpacing="0.8"
+                     HorizontalAlignment="Center" Foreground="{Binding Level, Converter={StaticResource LevelBrush}}" />
+        </Border>
+        <SelectableTextBlock Grid.Column="2" Text="{Binding Message}" FontSize="14" TextWrapping="Wrap" VerticalAlignment="Center" />
+      </Grid>
+    </DataTemplate>
+    <LinearGradientBrush x:Key="NeonGradient" StartPoint="0%,0%" EndPoint="100%,0%">
+      <GradientStop Offset="0" Color="#eb107e" />
+      <GradientStop Offset="0.55" Color="#b63590" />
+      <GradientStop Offset="1" Color="#00e5ff" />
+    </LinearGradientBrush>
+  </Styles.Resources>
+
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{StaticResource Bg}" />
+    <Setter Property="FontFamily" Value="{StaticResource BodyFont}" />
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="Foreground" Value="{StaticResource Text}" />
+  </Style>
+
+  <!-- text -->
+  <Style Selector="TextBlock.h1">
+    <Setter Property="FontFamily" Value="{StaticResource HeadFont}" />
+    <Setter Property="FontSize" Value="22" />
+    <Setter Property="Foreground" Value="{StaticResource PinkSoft}" />
+    <Setter Property="Effect" Value="drop-shadow(0 0 10 #eb107e)" />
+  </Style>
+  <Style Selector="TextBlock.brand">
+    <Setter Property="FontFamily" Value="{StaticResource HeadFont}" />
+    <Setter Property="FontSize" Value="17" />
+    <Setter Property="LetterSpacing" Value="2" />
+    <Setter Property="Foreground" Value="{StaticResource PinkSoft}" />
+    <Setter Property="Effect" Value="drop-shadow(0 0 8 #eb107e)" />
+  </Style>
+  <Style Selector="TextBlock.h2">
+    <Setter Property="FontFamily" Value="{StaticResource HeadFont}" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="LetterSpacing" Value="1.5" />
+    <Setter Property="Foreground" Value="{StaticResource Pink}" />
+    <Setter Property="Margin" Value="0,0,0,6" />
+  </Style>
+  <Style Selector="TextBlock.label">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{StaticResource Muted}" />
+  </Style>
+  <Style Selector="TextBlock.value">
+    <Setter Property="FontSize" Value="20" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{StaticResource Muted}" />
+  </Style>
+  <Style Selector="TextBlock.faint">
+    <Setter Property="Foreground" Value="{StaticResource Faint}" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+  <Style Selector="TextBlock.mono, SelectableTextBlock.mono">
+    <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+
+  <!-- surfaces -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{StaticResource Card}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="14,12" />
+  </Style>
+  <Style Selector="Border.metric">
+    <Setter Property="Background" Value="{StaticResource Card}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="12,8" />
+  </Style>
+  <Style Selector="Border.pill">
+    <Setter Property="Background" Value="{StaticResource CardHi}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="8,1" />
+    <Setter Property="Margin" Value="0,0,6,6" />
+  </Style>
+  <Style Selector="Border.pill > TextBlock">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="{StaticResource Muted}" />
+  </Style>
+  <Style Selector="Border.tagged">
+    <Setter Property="Background" Value="{StaticResource RedBg}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Red}" />
+  </Style>
+  <Style Selector="Border.clean">
+    <Setter Property="Background" Value="{StaticResource GreenBg}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Green}" />
+  </Style>
+  <!-- a backup field that differs from the current save: faint pink wash, pink edge, value in light pink -->
+  <!-- every row reserves the 2 px edge so text lines up whether or not the row is highlighted -->
+  <Style Selector="Border.fieldRow">
+    <Setter Property="Padding" Value="6,2" />
+    <Setter Property="BorderThickness" Value="2,0,0,0" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Border.fieldRow.differs">
+    <Setter Property="Background" Value="#1feb107e" />
+    <Setter Property="BorderBrush" Value="{StaticResource Pink}" />
+  </Style>
+  <Style Selector="Border.differs TextBlock.fieldValue">
+    <Setter Property="Foreground" Value="{StaticResource PinkSoft}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <!-- buttons -->
+  <Style Selector="Button">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{StaticResource Cyan}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="{StaticResource Cyan}" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="14,5" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+  <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#1f00e5ff" />
+    <Setter Property="BorderBrush" Value="{StaticResource Cyan}" />
+    <Setter Property="Foreground" Value="#8af6ff" />
+  </Style>
+  <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#3300e5ff" />
+    <Setter Property="BorderBrush" Value="{StaticResource Cyan}" />
+  </Style>
+  <Style Selector="Button:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="Foreground" Value="{StaticResource Faint}" />
+  </Style>
+  <Style Selector="Button.primary">
+    <Setter Property="BorderBrush" Value="{StaticResource Pink}" />
+    <Setter Property="Foreground" Value="{StaticResource PinkSoft}" />
+    <Setter Property="Background" Value="#33eb107e" />
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#55eb107e" />
+    <Setter Property="BorderBrush" Value="{StaticResource Pink}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+  <Style Selector="Button.danger">
+    <Setter Property="BorderBrush" Value="#66ff3b6b" />
+    <Setter Property="Foreground" Value="{StaticResource Red}" />
+  </Style>
+  <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#22ff3b6b" />
+    <Setter Property="BorderBrush" Value="{StaticResource Red}" />
+    <Setter Property="Foreground" Value="#ff8aa6" />
+  </Style>
+  <Style Selector="Button.link">
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Margin" Value="0,0,12,0" />
+  </Style>
+  <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource PinkSoft}" />
+  </Style>
+
+  <!-- list rows: playthrough headers stay near-black, the saves under them sit on a lighter purple so groups read
+       at a glance; hover and the focused (pink) row each step further away from both -->
+  <Style Selector="Button.row">
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="BorderBrush" Value="#231c33" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="#18122a" />
+    <Setter Property="Foreground" Value="{StaticResource Text}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="Button.row:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#241b3b" />
+    <Setter Property="BorderBrush" Value="#231c33" />
+    <Setter Property="Foreground" Value="{StaticResource Text}" />
+  </Style>
+  <Style Selector="Button.row:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#2c2147" />
+    <Setter Property="BorderBrush" Value="#231c33" />
+  </Style>
+  <Style Selector="Button.row.focused">
+    <Setter Property="Background" Value="#401242" />
+  </Style>
+  <Style Selector="Button.row.focused /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#401242" />
+  </Style>
+  <Style Selector="Button.group">
+    <Setter Property="Background" Value="#09070f" />
+    <Setter Property="BorderBrush" Value="#3a1d40" />
+  </Style>
+  <Style Selector="Button.group:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#120d1d" />
+    <Setter Property="BorderBrush" Value="#3a1d40" />
+  </Style>
+
+  <!-- square icon buttons in the top bar (links, music) -->
+  <Style Selector="Button.icon">
+    <Setter Property="Width" Value="36" />
+    <Setter Property="Height" Value="36" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <!-- minimise / maximise / close in the top bar (the system title bar is hidden) -->
+  <Style Selector="Button.caption">
+    <Setter Property="Width" Value="46" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.caption:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#1affffff" />
+  </Style>
+  <Style Selector="Button.caption:pointerover Path">
+    <Setter Property="Stroke" Value="{StaticResource Text}" />
+  </Style>
+  <Style Selector="Button.caption.close:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#e81123" />
+  </Style>
+  <Style Selector="Button.caption.close:pointerover Path">
+    <Setter Property="Stroke" Value="White" />
+  </Style>
+  <Style Selector="Button.caption Path">
+    <Setter Property="StrokeThickness" Value="1.2" />
+  </Style>
+
+  <Style Selector="Path.glyph">
+    <Setter Property="StrokeThickness" Value="1.7" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeJoin" Value="Round" />
+  </Style>
+
+  <!-- scrollbars: float over the content (no reserved lane) as a 4 px purple line hugging the right edge that widens
+       to 8 px and turns pink on hover. No arrow buttons, no grey slab; rows keep enough right padding to stay clear. -->
+  <Style Selector="ScrollBar:vertical">
+    <Setter Property="Width" Value="10" />
+    <Setter Property="MinWidth" Value="10" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="Transparent">
+          <Track Name="track" Orientation="Vertical" IsDirectionReversed="True"
+                 Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}"
+                 Value="{TemplateBinding Value, Mode=TwoWay}" ViewportSize="{TemplateBinding ViewportSize}">
+            <Thumb Name="thumb" />
+          </Track>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="ScrollBar:vertical /template/ Thumb#thumb">
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Margin" Value="6,2,0,2" />
+    <Setter Property="Background" Value="#4a2b5e" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Transitions">
+      <Transitions><ThicknessTransition Property="Margin" Duration="0:0:0.12" /></Transitions>
+    </Setter>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}" CornerRadius="3" />
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="ScrollBar:vertical:pointerover /template/ Thumb#thumb">
+    <Setter Property="Margin" Value="2,2,0,2" />
+    <Setter Property="Background" Value="#b63590" />
+  </Style>
+  <Style Selector="ScrollBar:vertical /template/ Thumb#thumb:pressed">
+    <Setter Property="Background" Value="#eb107e" />
+  </Style>
+
+  <!-- music player panel: hidden below the status bar, slides up and fades in when open -->
+  <Style Selector="Border.musicPanel">
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="RenderTransform" Value="translateY(40px)" />
+    <Setter Property="Effect" Value="drop-shadow(0 0 16 #66eb107e)" />
+    <Setter Property="Transitions">
+      <Transitions>
+        <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.22" Easing="CubicEaseOut" />
+      </Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Border.musicPanel.open">
+    <Setter Property="Opacity" Value="1" />
+    <Setter Property="RenderTransform" Value="translateY(0px)" />
+  </Style>
+
+  <!-- popups live outside the window, so they don't inherit its font: set it here -->
+  <Style Selector="FlyoutPresenter">
+    <Setter Property="Background" Value="{StaticResource Card}" />
+    <Setter Property="BorderBrush" Value="#b63590" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="18,14" />
+    <Setter Property="FontFamily" Value="{StaticResource BodyFont}" />
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="Foreground" Value="{StaticResource Text}" />
+    <Setter Property="Effect" Value="drop-shadow(0 0 16 #88eb107e)" />
+    <Setter Property="Margin" Value="12" />
+  </Style>
+
+  <Style Selector="ToolTip">
+    <Setter Property="FontFamily" Value="{StaticResource BodyFont}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="MaxWidth" Value="640" />
+    <Setter Property="Background" Value="{StaticResource Card}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Purple}" />
+  </Style>
+
+  <!-- status bar progress: pink → cyan gradient with a light sweep running across it -->
+  <Style Selector="Border.shimmer">
+    <Style.Animations>
+      <Animation Duration="0:0:1.4" IterationCount="Infinite">
+        <KeyFrame Cue="0%"><Setter Property="TranslateTransform.X" Value="-80" /></KeyFrame>
+        <KeyFrame Cue="100%"><Setter Property="TranslateTransform.X" Value="260" /></KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+  <Style Selector="Border.pulse">
+    <Style.Animations>
+      <Animation Duration="0:0:1.6" IterationCount="Infinite" PlaybackDirection="Alternate">
+        <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0.75" /></KeyFrame>
+        <KeyFrame Cue="100%"><Setter Property="Opacity" Value="1" /></KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+  <Style Selector="Button.result">
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="{StaticResource Green}" />
+    <Setter Property="Transitions">
+      <Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.6" /></Transitions>
+    </Setter>
+  </Style>
+  <Style Selector="Button.result.error">
+    <Setter Property="Foreground" Value="{StaticResource Red}" />
+  </Style>
+  <Style Selector="Button.result:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource Green}" />
+  </Style>
+  <Style Selector="Button.result.error:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Foreground" Value="#ff8aa6" />
+  </Style>
+
+  <!-- inputs -->
+  <Style Selector="TextBox">
+    <Setter Property="Background" Value="{StaticResource Card}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+  <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{StaticResource Card}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Cyan}" />
+  </Style>
+  <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{StaticResource Card}" />
+  </Style>
+  <Style Selector="ProgressBar">
+    <Setter Property="Foreground" Value="{StaticResource Pink}" />
+    <Setter Property="Background" Value="{StaticResource CardHi}" />
+    <Setter Property="MinHeight" Value="4" />
+  </Style>
+  <Style Selector="ProgressBar.attr">
+    <Setter Property="Foreground" Value="{StaticResource Cyan}" />
+    <Setter Property="Height" Value="6" />
+    <Setter Property="CornerRadius" Value="3" />
+  </Style>
+</Styles>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- concept S3, chosen 2026-10-30: strifehart.com link, synthwave sun over a grid floor -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M5 13 A7 7 0 0 1 19 13" stroke="#eb107e" stroke-width="1.8"/>
+    <path d="M6 10.5 H18 M7.5 8 H16.5" stroke="#eb107e" stroke-width="1.2"/>
+    <path d="M2 13 H22 M12 13 L12 21 M12 13 L5 21 M12 13 L19 21 M12 13 L1 18 M12 13 L23 18 M3.5 17 H20.5" stroke="#00e5ff" stroke-width="1.3"/>
+  </g>
+</svg>

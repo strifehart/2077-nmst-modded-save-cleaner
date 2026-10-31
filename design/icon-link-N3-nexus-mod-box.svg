@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- concept N3, chosen 2026-10-30: nexusmods.com/profile/strifehart link, "my mods" package -->
+  <g fill="none" stroke="#00e5ff" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M12 2.5 L20.5 7 V17 L12 21.5 L3.5 17 V7 Z"/>
+    <path d="M3.5 7 L12 11.5 L20.5 7 M12 11.5 V21.5"/>
+    <path d="M7.8 4.8 L16.2 9.2" stroke="#eb107e"/>
+  </g>
+</svg>

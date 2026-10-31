@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- App icon, 16–32 px: same struck tag, bolder lines, no gear and no glow so it stays crisp when tiny. -->
+  <rect x="0" y="0" width="64" height="64" rx="12" fill="#0d0a15"/>
+  <g fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M7 32 L22 15 H56 V49 H22 Z" stroke="#eb107e" stroke-width="6.5"/>
+    <circle cx="23" cy="32" r="4.5" fill="#00e5ff" stroke="none"/>
+    <path d="M10 55 L54 9" stroke="#0d0a15" stroke-width="13"/>
+    <path d="M10 55 L54 9" stroke="#ffdaec" stroke-width="6"/>
+  </g>
+</svg>

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "overdrive",
+    "title": "Overdrive",
+    "bpm": 128,
+    "file": "overdrive.ogg",
+    "duration": 85.55,
+    "outroStart": 67.55
+  },
+  {
+    "id": "chrome-highway",
+    "title": "Chrome Highway",
+    "bpm": 132,
+    "file": "chrome-highway.ogg",
+    "duration": 83.05,
+    "outroStart": 65.505
+  },
+  {
+    "id": "laser-city",
+    "title": "Laser City",
+    "bpm": 140,
+    "file": "laser-city.ogg",
+    "duration": 78.479,
+    "outroStart": 61.764
+  },
+  {
+    "id": "turbo-heart",
+    "title": "Turbo Heart",
+    "bpm": 150,
+    "file": "turbo-heart.ogg",
+    "duration": 73.45,
+    "outroStart": 57.65
+  },
+  {
+    "id": "neon-afterhours",
+    "title": "Neon Afterhours",
+    "bpm": 128,
+    "file": "neon-afterhours.ogg",
+    "duration": 85.55,
+    "outroStart": 67.55
+  }
+]

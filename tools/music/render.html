@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Render music</title>
+<pre id="log">rendering…</pre>
+<script src="engine.js"></script>
+<script>
+// Renders every track and posts the WAV + timing to serve.js, which writes them to disk.
+(async () => {
+  const log = m => (document.getElementById('log').textContent += '\n' + m);
+  const manifest = [];
+  const only = new URLSearchParams(location.search).get('only');
+  for (const t of TRACKS.filter(t => !only || t.id === only)) {
+    const buf = await renderTrack(t);
+    // keep headroom so nothing clips in the WAV; encode.sh then evens out loudness across tracks
+    let peak = 0; for (let c = 0; c < buf.numberOfChannels; c++) for (const v of buf.getChannelData(c)) peak = Math.max(peak, Math.abs(v));
+    if (peak > 0.9) for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] *= 0.9 / peak; }
+    const r = await fetch('/upload/' + t.id + '.wav', { method: 'POST', body: wav(buf) });
+    const { duration, outroStart } = timing(t);
+    manifest.push({ id: t.id, title: t.title, bpm: t.bpm, file: t.id + '.ogg', duration: +duration.toFixed(3), outroStart: +outroStart.toFixed(3) });
+    log(`${t.title}: ${duration.toFixed(1)} s, peak ${peak.toFixed(3)}, upload ${r.status}`);
+  }
+  if (!only) await fetch('/upload/tracks.json', { method: 'POST', body: JSON.stringify(manifest, null, 2) });
+  log('DONE');
+})().catch(e => { document.getElementById('log').textContent += '\nERROR ' + e.message; });
+</script>

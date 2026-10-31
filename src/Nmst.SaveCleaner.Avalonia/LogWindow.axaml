@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Nmst.SaveCleaner.ViewModels;assembly=Nmst.SaveCleaner.ViewModels"
+        x:Class="Nmst.SaveCleaner.Avalonia.LogWindow"
+        x:DataType="vm:MainViewModel"
+        Title="Processing log · NMST Modded Save Cleaner"
+        Width="900" Height="420" MinWidth="500" MinHeight="200">
+  <!-- the popped-out version of the docked log (same rows, see LogEntryTemplate in Theme.axaml) -->
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="16,10">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+        <TextBlock Classes="brand" FontSize="13" Text="PROCESSING LOG" VerticalAlignment="Center" />
+        <Border Grid.Column="1" Margin="12,0,0,0" Background="#33ff3b6b" CornerRadius="3" Padding="7,0" VerticalAlignment="Center"
+                IsVisible="{Binding HasLogErrors}">
+          <TextBlock Text="{Binding LogErrorCount, StringFormat='{}{0} error(s)'}" Foreground="{StaticResource Red}" FontSize="12" FontWeight="SemiBold" />
+        </Border>
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="12">
+          <Button Classes="link" Content="Copy" Command="{Binding CopyLogCommand}" />
+          <Button Classes="link" Content="Clear" Command="{Binding ClearLogCommand}" ToolTip.Tip="Clears this view only; the log file keeps everything" />
+          <Button Classes="link" Content="Log folder" Command="{Binding OpenLogFolderCommand}" />
+          <Button Classes="link" Content="Dock" Margin="0" Command="{Binding DockLogCommand}" ToolTip.Tip="Put the log back into the main window" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    <ScrollViewer x:Name="Scroll" Padding="16,8">
+      <ItemsControl ItemsSource="{Binding LogEntries}" ItemTemplate="{StaticResource LogEntryTemplate}" />
+    </ScrollViewer>
+  </DockPanel>
+</Window>

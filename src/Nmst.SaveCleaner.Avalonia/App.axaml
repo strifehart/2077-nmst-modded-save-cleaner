@@ -1,0 +1,15 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Nmst.SaveCleaner.Avalonia.App"
+             RequestedThemeVariant="Dark">
+  <Application.Styles>
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Dark" Accent="#00d9f0" AltHigh="#07060b" RegionColor="#07060b"
+                               BaseHigh="#efe9f7" BaseMediumHigh="#c9bfd8" BaseMedium="#9b90ad" BaseLow="#2a2238"
+                               ChromeMedium="#14101f" ChromeMediumLow="#100c19" ChromeLow="#0c0913" ChromeAltLow="#efe9f7" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
+    <StyleInclude Source="avares://NMSTSaveCleaner/Theme.axaml" />
+  </Application.Styles>
+</Application>
