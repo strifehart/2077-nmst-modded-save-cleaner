@@ -36,6 +36,6 @@ Every save is backed up before it's changed, and can be restored from its panel.
 Saves are found automatically (Windows: Saved Games\CD Projekt Red\Cyberpunk 2077). If yours are somewhere
 else, use "Change folder"; the choice is remembered.
 
-This is a TEST BUILD. Back up saves you care about yourself as well, and please report anything odd along with
+Back up saves you care about yourself as well. If anything looks odd, report it on the Nexus page along with
 the log file. Unofficial fan tool, not affiliated with or endorsed by CD PROJEKT RED. Use at your own risk.
 Third-party licences (fonts, libraries) are in the licenses folder.
