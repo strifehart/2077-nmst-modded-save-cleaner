@@ -12,7 +12,7 @@
     <Product>NMST Modded Save Cleaner</Product>
     <Company>strifehart</Company>
     <Copyright>© strifehart</Copyright>
-    <Version>0.1.0</Version>
+    <Version>1.0.0</Version>
   </PropertyGroup>
 
   <!-- dotnet publish -c Release -r win-x64: one self-contained .exe, no .NET install needed -->

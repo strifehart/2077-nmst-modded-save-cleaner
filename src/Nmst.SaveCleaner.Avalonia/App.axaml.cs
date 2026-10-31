@@ -13,7 +13,7 @@ namespace Nmst.SaveCleaner.Avalonia;
 
 public partial class App : Application
 {
-    /// <summary>"v0.1.0", from the project's &lt;Version&gt; (build metadata after '+' dropped).</summary>
+    /// <summary>"v1.0.0", from the project's &lt;Version&gt; (build metadata after '+' dropped).</summary>
     public static string VersionLabel { get; } = "v" + (typeof(App).Assembly
         .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "?");
 
