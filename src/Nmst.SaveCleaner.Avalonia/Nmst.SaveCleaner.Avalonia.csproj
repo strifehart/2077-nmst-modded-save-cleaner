@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <None Include="../../licenses/**" LinkBase="licenses" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

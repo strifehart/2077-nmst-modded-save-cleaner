@@ -38,4 +38,4 @@ else, use "Change folder"; the choice is remembered.
 
 Back up saves you care about yourself as well. If anything looks odd, report it on the Nexus page along with
 the log file. Unofficial fan tool, not affiliated with or endorsed by CD PROJEKT RED. Use at your own risk.
-Third-party licences (fonts, libraries) are in the licenses folder.
+Released under the MIT License (LICENSE.txt). Third-party licences (fonts, libraries) are in the licenses folder.

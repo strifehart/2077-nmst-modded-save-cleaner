@@ -96,3 +96,10 @@ See `licenses/` for third-party notices.
 
 This is an unofficial fan tool. It isn't made, supported or endorsed by CD PROJEKT RED. Use it at your own risk and
 keep your own copies of saves you care about.
+
+## Licence
+
+Released under the [MIT License](LICENSE). You're free to use, modify and share it, as long as the copyright notice
+and licence text come with it. The bundled fonts and libraries keep their own licences (see `licenses/`).
+
+The software is provided as is, without warranty. Back up your saves.
