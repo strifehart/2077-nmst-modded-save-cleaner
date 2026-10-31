@@ -1,5 +1,5 @@
 NMST MODDED SAVE CLEANER  ·  test build {VERSION}
-by strife//art  ·  https://strifehart.com/  ·  https://www.nexusmods.com/profile/strifehart
+by strifehart  ·  https://strifehart.com/  ·  https://www.nexusmods.com/profile/strifehart
 
 What it does
   Removes the "modded" tag from Cyberpunk 2077 saves you've already made: the flag behind the modded

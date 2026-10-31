@@ -10,8 +10,8 @@
     <AssemblyName>NMSTSaveCleaner</AssemblyName>
     <ApplicationIcon>Assets/Icon/app.ico</ApplicationIcon>
     <Product>NMST Modded Save Cleaner</Product>
-    <Company>strife//art</Company>
-    <Copyright>© strife//art</Copyright>
+    <Company>strifehart</Company>
+    <Copyright>© strifehart</Copyright>
     <Version>0.1.0</Version>
   </PropertyGroup>
 

@@ -4,7 +4,7 @@ public static class AppInfo
 {
     public const string Name = "NMST Modded Save Cleaner";
     public const string LongName = "No Modded Save Tag · Modded Save Cleaner";
-    public const string Author = "strife//art";
+    public const string Author = "strifehart";   // the stylised "strife//art" is only for the intro splash
     public const string SiteUrl = "https://strifehart.com/";
     public const string NexusProfileUrl = "https://www.nexusmods.com/profile/strifehart";
 }

@@ -27,7 +27,10 @@ public partial class MainWindow : Window
             vm.PropertyChanged += OnVmChanged;
             vm.LogEntries.CollectionChanged += OnLogEntriesChanged;
         };
-        Opened += (_, _) => { StartIntro(); UpdateWindowChrome(); };
+        Opened += (_, _) =>
+        {
+            StartIntro(); UpdateWindowChrome();
+        };
         Closing += (_, _) => _log?.Close();
         Intro.PointerPressed += (_, _) => SkipIntro();
         KeyDown += OnKeyDown;
@@ -68,6 +71,7 @@ public partial class MainWindow : Window
         else if (e.Key is Key.Enter or Key.Escape) { CloseDialog(e.Key == Key.Enter); e.Handled = true; }
     }
 
+
     // ---------- custom title bar ----------
 
     /// <summary>Shows the window buttons even without a real window (off-screen snapshots).</summary>
@@ -86,11 +90,17 @@ public partial class MainWindow : Window
         Root.Margin = max ? OffScreenMargin : default;
     }
 
+    // Windows runs its own modal move loop for BeginMoveDrag and swallows the mouse-up, so Avalonia may never see the
+    // release and leave the pointer captured by the title bar. Release capture before and after handing over, and never
+    // start a move on the second click of a double-click (that one maximises).
     private void OnTitleBarPressed(object? sender, PointerPressedEventArgs e)
     {
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
-        if (e.ClickCount == 2) ToggleMaximise();
-        else BeginMoveDrag(e);
+        e.Handled = true;
+        if (e.ClickCount >= 2) { ToggleMaximise(); return; }
+        e.Pointer.Capture(null);
+        BeginMoveDrag(e);
+        e.Pointer.Capture(null);   // the move loop has ended by the time BeginMoveDrag returns
     }
 
     private void ToggleMaximise() => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;

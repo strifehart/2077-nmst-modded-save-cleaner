@@ -173,10 +173,13 @@ public class CoreTests
         if (a is null) return;
         var saves = SaveScanner.Scan(RealSaves.Folder);
         var group = Playthrough.Group(saves).Single(g => g.Saves.Any(s => s.FolderName == "ManualSave-1186"));
-        Assert.Equal(["ManualSave-1188", "ManualSave-1187", "ManualSave-1186"], group.Saves.Select(s => s.FolderName));
+        // the playthrough can gain new saves as it's played; the three originals must stay grouped, newest first
+        var names = group.Saves.Select(s => s.FolderName).ToList();
+        Assert.Equal(["ManualSave-1188", "ManualSave-1187", "ManualSave-1186"], names.Where(n => n is "ManualSave-1186" or "ManualSave-1187" or "ManualSave-1188"));
+        Assert.Equal(group.Saves.OrderByDescending(s => s.Timestamp).Select(s => s.FolderName), names);
         Assert.Equal("Corpo", Playthrough.LifePathLabel(group.LifePath));
-        Assert.Equal(1, group.MaxLevel);
-        Assert.Equal(18, (int)group.MaxPlayTime.TotalMinutes);
+        Assert.True(group.MaxLevel >= 1);
+        Assert.True(group.MaxPlayTime.TotalMinutes >= 18);
     }
 
     [Theory]

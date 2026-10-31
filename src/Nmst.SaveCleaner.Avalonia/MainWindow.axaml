@@ -29,7 +29,7 @@
           </StackPanel>
           <!-- column 1 stays empty: free space to grab and drag the window -->
           <StackPanel x:Name="AppButtons" Grid.Column="2" Orientation="Horizontal" Spacing="8" IsEnabled="{Binding DisclaimerAccepted}">
-            <Button Classes="icon" ToolTip.Tip="strife//art · strifehart.com"
+            <Button Classes="icon" ToolTip.Tip="strifehart.com"
                     Command="{Binding OpenLinkCommand}" CommandParameter="{x:Static core:AppInfo.SiteUrl}">
               <Viewbox Width="22" Height="22">
                 <Canvas Width="24" Height="24">
@@ -225,49 +225,58 @@
                 <ItemsControl.DataTemplates>
 
                   <DataTemplate DataType="vm:PlaythroughGroupViewModel">
-                    <Button Classes="row group" Command="{Binding ToggleExpandedCommand}">
-                      <!-- right padding leaves room for the floating scrollbar (8 px when hovered) -->
-                      <Grid ColumnDefinitions="Auto,*,Auto" Margin="10,8,18,8">
-                        <CheckBox IsThreeState="True" IsChecked="{Binding CheckState}" VerticalAlignment="Top" MinWidth="0" Margin="0,-4,4,0"
-                                  ToolTip.Tip="Select the whole playthrough" />
-                        <StackPanel Grid.Column="1" Spacing="1">
-                          <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="{Binding Title}" FontFamily="{StaticResource HeadFont}" FontSize="13" Foreground="{StaticResource PinkSoft}" />
-                            <TextBlock Text="{Binding CountLabel}" Classes="faint" VerticalAlignment="Center" />
+                    <Panel>
+                      <Button Classes="row group" Command="{Binding ToggleExpandedCommand}">
+                        <!-- right padding keeps the arrow well clear of the floating scrollbar (14 px lane), so a click aimed at the
+                             thumb that lands a little short hits empty space instead of toggling the group -->
+                        <Grid ColumnDefinitions="Auto,*,Auto" Margin="10,8,26,8">
+                          <CheckBox IsThreeState="True" IsChecked="{Binding CheckState}" VerticalAlignment="Top" MinWidth="0" Margin="0,-4,4,0"
+                                    ToolTip.Tip="Select the whole playthrough" />
+                          <StackPanel Grid.Column="1" Spacing="1">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                              <TextBlock Text="{Binding Title}" FontFamily="{StaticResource HeadFont}" FontSize="13" Foreground="{StaticResource PinkSoft}" />
+                              <TextBlock Text="{Binding CountLabel}" Classes="faint" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding StatsLine}" Classes="faint" />
+                            <TextBlock Text="{Binding LatestLine}" Classes="faint" />
                           </StackPanel>
-                          <TextBlock Text="{Binding StatsLine}" Classes="faint" />
-                          <TextBlock Text="{Binding LatestLine}" Classes="faint" />
-                        </StackPanel>
-                        <Panel Grid.Column="2" VerticalAlignment="Center">
-                          <TextBlock Text="▾" Foreground="{StaticResource Cyan}" IsVisible="{Binding IsExpanded}" FontSize="16" />
-                          <TextBlock Text="▸" Foreground="{StaticResource Faint}" IsVisible="{Binding !IsExpanded}" FontSize="16" />
-                        </Panel>
-                      </Grid>
-                    </Button>
+                          <Panel Grid.Column="2" VerticalAlignment="Center">
+                            <TextBlock Text="▾" Foreground="{StaticResource Cyan}" IsVisible="{Binding IsExpanded}" FontSize="16" />
+                            <TextBlock Text="▸" Foreground="{StaticResource Faint}" IsVisible="{Binding !IsExpanded}" FontSize="16" />
+                          </Panel>
+                        </Grid>
+                      </Button>
+                      <!-- dead strip next to the floating scrollbar: a click aimed at the thumb that lands short does nothing -->
+                      <Border Width="22" HorizontalAlignment="Right" Background="Transparent" />
+                    </Panel>
                   </DataTemplate>
 
                   <DataTemplate DataType="vm:SaveItemViewModel">
-                    <Button Classes="row" Classes.focused="{Binding IsFocused}"
-                            Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).FocusSaveCommand}"
-                            CommandParameter="{Binding}">
-                      <Grid ColumnDefinitions="Auto,*" Margin="24,6,18,6">
-                        <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Top" MinWidth="0" Margin="0,-4,4,0" />
-                        <StackPanel Grid.Column="1" Spacing="0">
-                          <Grid ColumnDefinitions="*,Auto,Auto">
-                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Grid.Column="1" Text="⟲" IsVisible="{Binding HasBackups}" Foreground="{StaticResource Muted}"
-                                       Margin="0,0,8,0" VerticalAlignment="Center" ToolTip.Tip="Has backups" />
-                            <Ellipse Grid.Column="2" Width="9" Height="9" VerticalAlignment="Center"
-                                     Fill="{Binding State, Converter={StaticResource StateBrush}}" ToolTip.Tip="{Binding StateLabel}" />
-                          </Grid>
-                          <TextBlock Text="{Binding ListLine}" Classes="faint" />
-                          <TextBlock Text="{Binding TrackedQuest}" Classes="faint" TextTrimming="CharacterEllipsis"
-                                     IsVisible="{Binding MatchHint, Converter={x:Static StringConverters.IsNullOrEmpty}}" />
-                          <TextBlock Text="{Binding MatchHint}" Foreground="{StaticResource Cyan}" FontSize="13" TextTrimming="CharacterEllipsis"
-                                     IsVisible="{Binding MatchHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                        </StackPanel>
-                      </Grid>
-                    </Button>
+                    <Panel>
+                      <Button Classes="row" Classes.focused="{Binding IsFocused}"
+                              Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).FocusSaveCommand}"
+                              CommandParameter="{Binding}">
+                        <Grid ColumnDefinitions="Auto,*" Margin="24,6,26,6">
+                          <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Top" MinWidth="0" Margin="0,-4,4,0" />
+                          <StackPanel Grid.Column="1" Spacing="0">
+                            <Grid ColumnDefinitions="*,Auto,Auto">
+                              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                              <TextBlock Grid.Column="1" Text="⟲" IsVisible="{Binding HasBackups}" Foreground="{StaticResource Muted}"
+                                         Margin="0,0,8,0" VerticalAlignment="Center" ToolTip.Tip="Has backups" />
+                              <Ellipse Grid.Column="2" Width="9" Height="9" VerticalAlignment="Center"
+                                       Fill="{Binding State, Converter={StaticResource StateBrush}}" ToolTip.Tip="{Binding StateLabel}" />
+                            </Grid>
+                            <TextBlock Text="{Binding ListLine}" Classes="faint" />
+                            <TextBlock Text="{Binding TrackedQuest}" Classes="faint" TextTrimming="CharacterEllipsis"
+                                       IsVisible="{Binding MatchHint, Converter={x:Static StringConverters.IsNullOrEmpty}}" />
+                            <TextBlock Text="{Binding MatchHint}" Foreground="{StaticResource Cyan}" FontSize="13" TextTrimming="CharacterEllipsis"
+                                       IsVisible="{Binding MatchHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                          </StackPanel>
+                        </Grid>
+                      </Button>
+                      <!-- dead strip next to the floating scrollbar: a click aimed at the thumb that lands short does nothing -->
+                      <Border Width="22" HorizontalAlignment="Right" Background="Transparent" />
+                    </Panel>
                   </DataTemplate>
 
                 </ItemsControl.DataTemplates>
@@ -569,7 +578,7 @@
                         <Slider Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding MusicVolume}" IsEnabled="{Binding !MusicMuted}" VerticalAlignment="Center" />
                         <TextBlock Grid.Column="2" Text="{Binding MusicVolume, StringFormat='{}{0:0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                       </Grid>
-                      <TextBlock Classes="faint" TextWrapping="Wrap" Text="Original synthwave by strife//art. Mute and volume are remembered." />
+                      <TextBlock Classes="faint" TextWrapping="Wrap" Text="Original synthwave by strifehart. Mute and volume are remembered." />
                     </StackPanel>
                     <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !MusicAvailable}"
                                Text="Music isn't available on this system yet." />

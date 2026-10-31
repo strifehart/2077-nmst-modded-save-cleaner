@@ -82,13 +82,14 @@ dotnet run --project src/Nmst.SaveCleaner.Avalonia
 | `src/Nmst.SaveCleaner.Avalonia` | the Avalonia desktop app |
 | `tests/` | tests, run against copies of real saves when `SAVEBROWSER_TEST_SAVES` or the default saves folder exists |
 | `tools/Snapshots` | renders the UI off-screen to PNGs |
+| `tools/DragProbe` | off-screen check that the save list's scrollbar thumb can be dragged at several window sizes |
 | `tools/IconGen` | builds `app.ico` from `design/icon-app-*.svg` |
 | `tools/music` | the synth engine and render/encode scripts for the background music |
 | `tools/build-names.js` | rebuilds the quest/location name table from the game files |
 
 ## Credits
 
-Made by **strife//art**: [strifehart.com](https://strifehart.com/) · [Nexus Mods](https://www.nexusmods.com/profile/strifehart)
+Made by **strifehart**: [strifehart.com](https://strifehart.com/) · [Nexus Mods](https://www.nexusmods.com/profile/strifehart)
 
 Original synthwave soundtrack synthesised for the app. Fonts: Orbitron and Rajdhani (SIL Open Font License).
 See `licenses/` for third-party notices.
