@@ -1,4 +1,4 @@
-NMST MODDED SAVE CLEANER  ·  test build {VERSION}
+NMST MODDED SAVE CLEANER  ·  v{VERSION}
 by strifehart  ·  https://strifehart.com/  ·  https://www.nexusmods.com/profile/strifehart
 
 What it does
