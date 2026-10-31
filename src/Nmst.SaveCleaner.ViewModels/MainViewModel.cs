@@ -305,6 +305,8 @@ public sealed partial class MainViewModel : ObservableObject
         foreach (var i in _all) i.IsChecked = pick(i);
     }
 
+    [RelayCommand] private void ClearSearch() => SearchText = "";
+
     [RelayCommand] private void SelectAll() => SetChecked(i => i.Matches(SearchText.Trim()));
     [RelayCommand] private void SelectNone() => SetChecked(_ => false);
     [RelayCommand] private void SelectTagged() => SetChecked(i => i.IsTagged);

@@ -79,6 +79,26 @@ public class ViewModelTests
     }
 
     [Fact]
+    public async Task Clearing_the_search_brings_every_row_back()
+    {
+        var any = RealSaves.Find((_, _) => true);
+        if (any is null) return;
+        using var t = new TempDir();
+        t.CopySave(any);
+        var vm = new MainViewModel(new FakePlatform(), t.Saves, t.Backups, null) { IsGameRunning = () => false };
+        await vm.ReloadCommand.ExecuteAsync(null);
+        await WaitForFlags(vm);
+        int all = vm.Rows.Count;
+
+        vm.SearchText = "no save is called this";
+        Assert.True(vm.Rows.Count < all);
+
+        vm.ClearSearchCommand.Execute(null);
+        Assert.Equal("", vm.SearchText);
+        Assert.Equal(all, vm.Rows.Count);
+    }
+
+    [Fact]
     public async Task Nothing_is_written_while_the_game_runs()
     {
         var tagged = RealSaves.Find((m, s) => m.IsModded && s == true);

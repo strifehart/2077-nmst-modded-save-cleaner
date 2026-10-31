@@ -203,7 +203,18 @@
         <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
           <DockPanel>
             <StackPanel DockPanel.Dock="Top" Margin="12,12,12,6" Spacing="8">
-              <TextBox Text="{Binding SearchText}" Watermark="Search saves, quests, places" />
+              <!-- the ✕ shows once there's something to clear; Esc in the box does the same -->
+              <TextBox Text="{Binding SearchText}" Watermark="Search saves, quests, places">
+                <TextBox.KeyBindings>
+                  <KeyBinding Gesture="Escape" Command="{Binding ClearSearchCommand}" />
+                </TextBox.KeyBindings>
+                <TextBox.InnerRightContent>
+                  <Button Classes="clearSearch" Command="{Binding ClearSearchCommand}" ToolTip.Tip="Clear search"
+                          IsVisible="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <Path Classes="glyph" Data="M0 0 L9 9 M9 0 L0 9" />
+                  </Button>
+                </TextBox.InnerRightContent>
+              </TextBox>
               <WrapPanel>
                 <Button Classes="link" Content="All" Command="{Binding SelectAllCommand}" />
                 <Button Classes="link" Content="None" Command="{Binding SelectNoneCommand}" />

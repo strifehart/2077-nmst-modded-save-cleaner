@@ -422,6 +422,27 @@
   <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
     <Setter Property="Background" Value="{StaticResource Card}" />
   </Style>
+  <!-- ✕ inside the search box: a bare glyph, pink on hover -->
+  <Style Selector="Button.clearSearch">
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.clearSearch:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.clearSearch:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.clearSearch Path">
+    <Setter Property="Stroke" Value="{StaticResource Faint}" />
+  </Style>
+  <Style Selector="Button.clearSearch:pointerover Path">
+    <Setter Property="Stroke" Value="{StaticResource Pink}" />
+  </Style>
   <Style Selector="ProgressBar">
     <Setter Property="Foreground" Value="{StaticResource Pink}" />
     <Setter Property="Background" Value="{StaticResource CardHi}" />
