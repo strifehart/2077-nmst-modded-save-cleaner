@@ -86,7 +86,7 @@ public class CleanupTests
         var cleaned = cleaner.Clean(save);
         backups.Restore(backups.List(name).Single(b => b.Id == cleaned.BackupId), t.Saves);
 
-        var vm = new MainViewModel(new ViewModelTests.FakePlatform(), t.Saves, t.Backups, null) { IsGameRunning = () => false, MinBusyTime = TimeSpan.Zero };
+        var vm = new MainViewModel(new ViewModelTests.FakePlatform(), t.Saves, t.Backups, null) { MinBusyTime = TimeSpan.Zero };
         await vm.ReloadCommand.ExecuteAsync(null);
         var run = vm.CleanUpBackupsCommand.ExecuteAsync(null);
         var end = DateTime.Now.AddSeconds(30);

@@ -9,7 +9,7 @@ public static class DisclaimerText
     /// disclaimer only comes back when this goes up. Bump it whenever the meaning of the text changes (a test pins
     /// the text to this number, so an edit without a bump fails the build's tests).
     /// </summary>
-    public const int Version = 1;
+    public const int Version = 2;
 
     public const string Title = "Before you continue";
 
@@ -19,7 +19,7 @@ public static class DisclaimerText
         "changing save files can corrupt them and lose progress.\n\n" +
         "• It's an unofficial fan tool, a companion to the No Modded Save Tag plugin. It isn't made, supported or endorsed by CD Projekt RED.\n" +
         "• The app backs up every save before changing it, but backups can fail too. Keep your own copies of saves you care about.\n" +
-        "• Close the game before changing saves. Saves synced by Steam Cloud, GOG Galaxy or Cross Progression go wherever the game sends them.\n" +
+        "• Saves synced by Steam Cloud, GOG Galaxy or Cross Progression go wherever the game sends them.\n" +
         "• Game patches can change the save format at any time and break this app.\n\n" +
         "The software is provided \"as is\", without warranty of any kind. You use it entirely at your own risk. " +
         "The author isn't liable for any lost, damaged or corrupted saves, lost progress, achievements or trophies, " +

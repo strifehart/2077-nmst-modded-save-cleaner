@@ -154,7 +154,7 @@ public class RenameStarTests
         File.WriteAllText(Path.Combine(t.Root, "saves.json"),
             $$"""{ "Version": 1, "Saves": { "{{id}}": { "Starred": true, "StarredUtc": null, "Renames": [] } } }""");
 
-        var vm = new MainViewModel(new ViewModelTests.FakePlatform(), t.Saves, t.Backups, null) { IsGameRunning = () => false, MinBusyTime = TimeSpan.Zero };
+        var vm = new MainViewModel(new ViewModelTests.FakePlatform(), t.Saves, t.Backups, null) { MinBusyTime = TimeSpan.Zero };
         await vm.ReloadCommand.ExecuteAsync(null);
         vm.ExpandAllCommand.Execute(null);
         var items = vm.Rows.OfType<SaveItemViewModel>().ToList();
@@ -197,7 +197,7 @@ public class RenameStarTests
         using var t = new TempDir();
         var save = t.CopySave(src);
         t.CopySave(other);
-        var vm = new MainViewModel(new ViewModelTests.FakePlatform(), t.Saves, t.Backups, null) { IsGameRunning = () => false, MinBusyTime = TimeSpan.Zero };
+        var vm = new MainViewModel(new ViewModelTests.FakePlatform(), t.Saves, t.Backups, null) { MinBusyTime = TimeSpan.Zero };
         await vm.ReloadCommand.ExecuteAsync(null);
         var item = vm.Rows.OfType<SaveItemViewModel>().Concat(vm.Rows.OfType<PlaythroughGroupViewModel>().SelectMany(g => g.Items))
             .First(i => i.Name == Path.GetFileName(save));

@@ -13,10 +13,9 @@ Requirements
   click "More info" -> "Run anyway".
 
 How to use
-  1. Close Cyberpunk 2077 (the app won't change saves while the game runs).
-  2. Run NMSTSaveCleaner.exe. Nothing to install; it's one self-contained file.
-  3. Read and accept the disclaimer (shown again only if the terms change).
-  4. Pick a tagged save (red or orange dot) and press "Clean tag", or tick several (or "Tagged" to
+  1. Run NMSTSaveCleaner.exe. Nothing to install; it's one self-contained file.
+  2. Read and accept the disclaimer (shown again only if the terms change).
+  3. Pick a tagged save (red or orange dot) and press "Clean tag", or tick several (or "Tagged" to
      select all of them) and run "Clean modded tag".
 
 What the dots mean

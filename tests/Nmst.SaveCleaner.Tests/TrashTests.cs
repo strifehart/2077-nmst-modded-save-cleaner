@@ -115,7 +115,7 @@ public class TrashTests
         if (src is null) return;
         using var t = new TempDir();
         var save = t.CopySave(src);
-        var vm = new MainViewModel(new ViewModelTests.FakePlatform(), t.Saves, t.Backups, null) { IsGameRunning = () => false, MinBusyTime = TimeSpan.Zero };
+        var vm = new MainViewModel(new ViewModelTests.FakePlatform(), t.Saves, t.Backups, null) { MinBusyTime = TimeSpan.Zero };
         await vm.ReloadCommand.ExecuteAsync(null);
         vm.ToggleStarCommand.Execute(vm.Focused);
 

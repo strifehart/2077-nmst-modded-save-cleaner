@@ -348,7 +348,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private async Task RenameAsync(SaveItemViewModel item, string newName)
     {
-        if (!await CanWriteAsync()) return;
+        if (IsBusy) return;
         var old = item.Name;
         _flagScan?.Cancel();   // its reads keep files in the folder open, which blocks a rename (the reload restarts it)
         try
@@ -532,7 +532,7 @@ public sealed partial class MainViewModel : ObservableObject
         Focused = item;
     }
 
-    // ---------- write operations: always backed up, never while the game runs ----------
+    // ---------- write operations: always backed up ----------
 
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string _busyText = "";
@@ -571,20 +571,6 @@ public sealed partial class MainViewModel : ObservableObject
         if (Log.FilePath is { } f && Path.GetDirectoryName(f) is { } dir && Directory.Exists(dir)) _platform.OpenFolder(dir);
     }
 
-    /// <summary>Replaceable for tests; the real check looks for Cyberpunk2077.exe.</summary>
-    public Func<bool> IsGameRunning { get; set; } = GameProcess.IsRunning;
-
-    private async Task<bool> CanWriteAsync()
-    {
-        if (IsBusy) return false;
-        if (!IsGameRunning()) return true;
-        Log.Warn("Cyberpunk 2077 is running; nothing was changed");
-        ShowResult("Close the game first: nothing was changed", true);
-        await _platform.AlertAsync("Close the game first",
-            "Close Cyberpunk 2077, then try again.");
-        return false;
-    }
-
     private bool CanCleanChecked() => BatchToClean > 0 || BatchUnknown > 0;
 
     [RelayCommand(CanExecute = nameof(CanCleanChecked))]
@@ -610,7 +596,7 @@ public sealed partial class MainViewModel : ObservableObject
             ShowResult("Nothing to clean: already clean", false);
             return;
         }
-        if (!await CanWriteAsync()) return;
+        if (IsBusy) return;
         if (todo.Count > 1 && !await _platform.ConfirmAsync("Clean modded tag",
                 $"Clean {todo.Count} saves? Each is backed up first."
                 + (skip > 0 ? $"\n\n{skip} already clean save{(skip == 1 ? " is" : "s are")} skipped." : ""), "Clean"))
@@ -696,7 +682,7 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task RestoreAsync(BackupItemViewModel backup)
     {
-        if (Focused is null || !await CanWriteAsync()) return;
+        if (Focused is null || IsBusy) return;
         var otherFolder = backup.IsFromOtherFolder
             ? $"\n\nCareful: this backup was taken from {backup.Backup.SourceFolder}, a different saves folder. It's a save with the same name, not necessarily the same save."
             : "";
@@ -767,7 +753,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private async Task DeleteSavesAsync(List<SaveItemViewModel> items)
     {
-        if (items.Count == 0 || IsBusy || !await CanWriteAsync()) return;
+        if (items.Count == 0 || IsBusy) return;
         int ponr = items.Count(i => i.Info.Metadata?.IsPointOfNoReturn == true);
         string what = items.Count == 1 ? items[0].Name : $"{items.Count} saves";
         if (!await _platform.ConfirmAsync(items.Count == 1 ? "Delete save" : "Delete saves",
@@ -823,7 +809,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private async Task RestoreFromTrashAsync(IReadOnlyList<TrashItem> items)
     {
-        if (items.Count == 0 || !await CanWriteAsync()) return;
+        if (items.Count == 0 || IsBusy) return;
         BeginBusy("Restoring…");
         int ok = 0, failed = 0;
         var renamed = new List<string>();
@@ -1018,7 +1004,7 @@ public sealed partial class MainViewModel : ObservableObject
         Review = null;
         if (!go) return;
         var chosen = review.Chosen;
-        if (chosen.Count == 0 || !await CanWriteAsync()) return;
+        if (chosen.Count == 0 || IsBusy) return;
 
         Log.Info($"{review.Title}: {chosen.Count} save{(chosen.Count == 1 ? "" : "s")}");
         BeginBusy("Restoring…");

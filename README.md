@@ -29,7 +29,6 @@ The plugin stops *new* saves from being tagged. This app cleans the ones that al
   game wrote it, before the app cleaned it), **Manual** and **Undo**. *Backups → Clean up backups…* reviews the
   rest (Before restore copies, backups of deleted saves, older auto/quick slot saves, copies identical to the save)
   before deleting anything
-- Refuses to change anything while the game is running
 
 ## Requirements
 

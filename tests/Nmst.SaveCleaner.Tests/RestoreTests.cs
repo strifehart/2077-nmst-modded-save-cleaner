@@ -110,7 +110,7 @@ public class RestoreTests
         var sources = TaggedSaves(n);
         var t = new TempDir();
         var saves = sources.Select(t.CopySave).ToList();
-        var vm = new MainViewModel(new ViewModelTests.FakePlatform(), t.Saves, t.Backups, null) { IsGameRunning = () => false, MinBusyTime = TimeSpan.Zero };
+        var vm = new MainViewModel(new ViewModelTests.FakePlatform(), t.Saves, t.Backups, null) { MinBusyTime = TimeSpan.Zero };
         await vm.ReloadCommand.ExecuteAsync(null);
         await ViewModelTests.WaitForFlags(vm);
         vm.SelectTaggedCommand.Execute(null);

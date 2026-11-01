@@ -64,7 +64,7 @@ public class ViewModelTests
     {
         var text = DisclaimerText.Title + "\n" + DisclaimerText.Body + "\n" + DisclaimerText.Accept;
         var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text)));
-        Assert.Equal((1, "1F9ADA850E3BB45D"), (DisclaimerText.Version, hash[..16]));
+        Assert.Equal((2, "1C5D1C043FCFD3DE"), (DisclaimerText.Version, hash[..16]));
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class ViewModelTests
         using var t = new TempDir();
         foreach (var s in new[] { tagged, sticky, clean }) t.CopySave(s);
         var platform = new FakePlatform();
-        var vm = new MainViewModel(platform, t.Saves, t.Backups, null) { IsGameRunning = () => false };
+        var vm = new MainViewModel(platform, t.Saves, t.Backups, null);
         await vm.ReloadCommand.ExecuteAsync(null);
         await WaitForFlags(vm);
 
@@ -111,7 +111,7 @@ public class ViewModelTests
         if (any is null) return;
         using var t = new TempDir();
         t.CopySave(any);
-        var vm = new MainViewModel(new FakePlatform(), t.Saves, t.Backups, null) { IsGameRunning = () => false };
+        var vm = new MainViewModel(new FakePlatform(), t.Saves, t.Backups, null);
         await vm.ReloadCommand.ExecuteAsync(null);
         await WaitForFlags(vm);
         int all = vm.Rows.Count;
@@ -122,24 +122,5 @@ public class ViewModelTests
         vm.ClearSearchCommand.Execute(null);
         Assert.Equal("", vm.SearchText);
         Assert.Equal(all, vm.Rows.Count);
-    }
-
-    [Fact]
-    public async Task Nothing_is_written_while_the_game_runs()
-    {
-        var tagged = RealSaves.Find((m, s) => m.IsModded && s == true);
-        if (tagged is null) return;
-        using var t = new TempDir();
-        var save = t.CopySave(tagged);
-        var before = Directory.GetFiles(save).ToDictionary(f => Path.GetFileName(f), File.ReadAllBytes);
-        var vm = new MainViewModel(new FakePlatform(), t.Saves, t.Backups, null) { IsGameRunning = () => true };
-        await vm.ReloadCommand.ExecuteAsync(null);
-        await WaitForFlags(vm);
-
-        await vm.CleanFocusedCommand.ExecuteAsync(null);
-
-        foreach (var (name, bytes) in before) Assert.Equal(bytes, File.ReadAllBytes(Path.Combine(save, name!)));
-        Assert.False(Directory.Exists(t.Backups) && Directory.GetDirectories(t.Backups).Length > 0);
-        Assert.Contains(vm.LogEntries, e => e.Level == LogLevel.Warn);
     }
 }
