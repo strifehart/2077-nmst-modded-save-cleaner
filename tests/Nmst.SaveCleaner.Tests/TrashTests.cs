@@ -77,6 +77,38 @@ public class TrashTests
     }
 
     [Fact]
+    public void The_trash_sorts_by_deletion_time_or_by_name_in_natural_order()
+    {
+        var now = DateTime.Now;
+        (int Count, bool Emptying) deleted = default;
+        TrashItem Item(string name, int minutesAgo) => new($@"C:\nowhere\{name}", name, @"C:\saves", now.AddMinutes(-minutesAgo), null, 1, null);
+        var vm = new TrashViewModel([Item("ManualSave-1069", 5), Item("Judy x FV Scene", 1), Item("ManualSave-11", 3), Item("zzz", 9)],
+            Nmst.SaveCleaner.Core.Localization.GameNames.Empty, _ => Task.CompletedTask, (items, emptying) => { deleted = (items.Count, emptying); return Task.CompletedTask; }, () => { });
+
+        Assert.Equal(["Judy x FV Scene", "ManualSave-11", "ManualSave-1069", "zzz"], vm.Rows.Select(r => r.Name));   // newest deletion first
+        vm.Rows.Single(r => r.Name == "zzz").IsChecked = true;
+
+        vm.SortByNameCommand.Execute(null);
+        Assert.Equal(["Judy x FV Scene", "ManualSave-11", "ManualSave-1069", "zzz"], vm.Rows.Select(r => r.Name));   // 11 before 1069
+        Assert.Equal("Name A–Z", vm.NameSortLabel);
+        vm.SortByNameCommand.Execute(null);                                    // again: reversed
+        Assert.Equal(["zzz", "ManualSave-1069", "ManualSave-11", "Judy x FV Scene"], vm.Rows.Select(r => r.Name));
+        Assert.True(vm.Rows.Single(r => r.Name == "zzz").IsChecked);          // ticks survive a re-sort
+
+        vm.SortByDeletedCommand.Execute(null);
+        Assert.Equal("zzz", vm.Rows.Last().Name);                              // oldest deletion last
+
+        // the delete buttons say what they cover: the ticked saves, or the whole trash
+        Assert.Equal("Delete permanently", vm.DeleteForeverText);
+        vm.Rows[0].IsChecked = true;
+        Assert.Equal("Delete 2 permanently", vm.DeleteForeverText);
+        vm.DeleteForeverCommand.Execute(null);
+        Assert.Equal((2, false), deleted);
+        vm.EmptyCommand.Execute(null);
+        Assert.Equal((4, true), deleted);
+    }
+
+    [Fact]
     public async Task The_app_deletes_and_restores_through_the_trash_view()
     {
         var src = Any();

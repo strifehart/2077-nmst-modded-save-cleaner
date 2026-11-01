@@ -7,8 +7,8 @@ namespace Nmst.SaveCleaner.Avalonia;
 
 public sealed class PlatformServices(MainWindow owner) : IPlatformServices
 {
-    public Task<bool> ConfirmAsync(string title, string message, string confirmText) =>
-        owner.ShowDialogAsync(title, message, confirmText, "Cancel");
+    public Task<bool> ConfirmAsync(string title, string message, string confirmText, string? warning = null) =>
+        owner.ShowDialogAsync(title, message, confirmText, "Cancel", warning);
 
     public Task AlertAsync(string title, string message) =>
         owner.ShowDialogAsync(title, message, "OK", null);

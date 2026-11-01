@@ -453,14 +453,26 @@
     <Setter Property="Foreground" Value="{StaticResource Amber}" />
   </Style>
 
-  <!-- two-part filter toggle (Show all | Starred): the active side is filled -->
+  <!-- list filters (Show all, Starred, Renamed, Duplicates): equal tiles in a grid; the active one is filled.
+       Fixed height, because the star comes from a fallback font with a taller line -->
   <Style Selector="Button.seg">
     <Setter Property="BorderBrush" Value="{StaticResource Line}" />
     <Setter Property="Foreground" Value="{StaticResource Muted}" />
-    <Setter Property="CornerRadius" Value="0" />
-    <Setter Property="Padding" Value="10,2" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="Margin" Value="0,0,4,4" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="FontSize" Value="13" />
     <Setter Property="FontWeight" Value="Normal" />
+  </Style>
+  <!-- sort buttons: same look, sized to their label, side by side -->
+  <Style Selector="Button.seg.sort">
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="MinWidth" Value="92" />
+    <Setter Property="Margin" Value="0,0,4,0" />
   </Style>
   <Style Selector="Button.seg.on"><Setter Property="Background" Value="#401242" /><Setter Property="Foreground" Value="{StaticResource PinkSoft}" /></Style>
   <Style Selector="Button.seg.starFilter.on"><Setter Property="Foreground" Value="{StaticResource Amber}" /></Style>
@@ -472,6 +484,15 @@
     <Setter Property="Background" Value="{StaticResource AmberBg}" />
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="Padding" Value="10,6" />
+  </Style>
+
+  <!-- what a confirm costs (deleting an original backup): amber, apart from the message -->
+  <Style Selector="Border.warning">
+    <Setter Property="BorderBrush" Value="{StaticResource Amber}" />
+    <Setter Property="BorderThickness" Value="3,1,1,1" />
+    <Setter Property="Background" Value="{StaticResource AmberBg}" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="12,10" />
   </Style>
 
   <!-- badges on backup cards: why a backup is always kept -->

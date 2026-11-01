@@ -139,7 +139,16 @@ public sealed partial class MainViewModel : ObservableObject
                 ? $"No Cyberpunk 2077 saves in {SavesFolder}. Pick the folder that holds your ManualSave-… / AutoSave-… folders."
                 : "";
             var items = saves.ToDictionary(s => s.FolderPath, s => new SaveItemViewModel(s, _names, counts.GetValueOrDefault(s.FolderName)));
+            if (_notes.MigrateLegacy(saves))
+            {
+                try { _notes.Save(); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Log.Warn("Couldn't update saves.json · " + e.Message); }
+            }
             foreach (var i in items.Values) { i.IsStarred = _notes.IsStarred(i.Info); i.PropertyChanged += OnItemChanged; }
+            // copies of one game save (same playthrough + in-game save time) point at each other
+            foreach (var same in items.Values.Where(i => SaveNotes.IdentityOf(i.Info.Metadata) is not null)
+                         .GroupBy(i => SaveNotes.IdentityOf(i.Info.Metadata)).Where(g => g.Count() > 1))
+                foreach (var i in same) i.DuplicateOf = same.Where(o => o != i).Select(o => o.Name).Order(StringComparer.OrdinalIgnoreCase).ToList();
             _all = items.Values.ToList();
             _groups = Playthrough.Group(saves)
                 .Select(p => new PlaythroughGroupViewModel(p, p.Saves.Select(s => items[s.FolderPath]).ToList(), RebuildRows))
@@ -198,7 +207,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var q = SearchText.Trim();
         bool filtering = q.Length > 0 || Filter != ListFilter.All;
-        bool Shown(SaveItemViewModel i) => Filter switch { ListFilter.Starred => i.IsStarred, ListFilter.Renamed => i.IsRenamed, _ => true };
+        bool Shown(SaveItemViewModel i) => Filter switch { ListFilter.Starred => i.IsStarred, ListFilter.Renamed => i.IsRenamed, ListFilter.Duplicates => i.HasDuplicates, _ => true };
         var rows = new List<object>();
         foreach (var g in _groups)
         {
@@ -211,11 +220,12 @@ public sealed partial class MainViewModel : ObservableObject
         }
         Rows = new ObservableCollection<object>(rows);
         NoMatches = filtering && rows.Count == 0;
-        string kind = Filter == ListFilter.Starred ? "starred" : "renamed";
+        string kind = Filter switch { ListFilter.Starred => "starred", ListFilter.Renamed => "renamed", _ => "duplicate" };
         NoMatchesText = Filter == ListFilter.All ? "No saves, quests or places match your search."
             : q.Length == 0 ? $"No {kind} saves yet." : $"No {kind} saves match your search.";
         StarredCount = _all.Count(i => i.IsStarred);
         RenamedCount = _all.Count(i => i.IsRenamed);
+        DuplicateCount = _all.Count(i => i.HasDuplicates);
     }
 
     [ObservableProperty] private bool _noMatches;
@@ -223,14 +233,15 @@ public sealed partial class MainViewModel : ObservableObject
 
     // ---------- list filter (what the list shows, separate from ticking saves) + stars ----------
 
-    public enum ListFilter { All, Starred, Renamed }
+    public enum ListFilter { All, Starred, Renamed, Duplicates }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsFilterAll), nameof(IsFilterStarred), nameof(IsFilterRenamed), nameof(ShowStarredOnly))]
+    [NotifyPropertyChangedFor(nameof(IsFilterAll), nameof(IsFilterStarred), nameof(IsFilterRenamed), nameof(IsFilterDuplicates), nameof(ShowStarredOnly))]
     private ListFilter _filter;
     public bool IsFilterAll => Filter == ListFilter.All;
     public bool IsFilterStarred => Filter == ListFilter.Starred;
     public bool IsFilterRenamed => Filter == ListFilter.Renamed;
+    public bool IsFilterDuplicates => Filter == ListFilter.Duplicates;
     public bool ShowStarredOnly { get => IsFilterStarred; set => Filter = value ? ListFilter.Starred : ListFilter.All; }
 
     [ObservableProperty]
@@ -241,6 +252,12 @@ public sealed partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(RenamedLabel))]
     private int _renamedCount;
     public string RenamedLabel => $"Renamed {RenamedCount}";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DuplicateLabel), nameof(HasDuplicateSaves))]
+    private int _duplicateCount;
+    public string DuplicateLabel => $"Duplicates {DuplicateCount}";
+    /// <summary>The Duplicates filter only shows up when there are copies.</summary>
+    public bool HasDuplicateSaves => DuplicateCount > 0 || IsFilterDuplicates;
 
     partial void OnFilterChanged(ListFilter value) { OpenFilteredGroups(); RebuildRows(); }
 
@@ -250,6 +267,7 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand] private void ShowAll() => Filter = ListFilter.All;
     [RelayCommand] private void ShowStarred() => Filter = ListFilter.Starred;
     [RelayCommand] private void ShowRenamed() => Filter = ListFilter.Renamed;
+    [RelayCommand] private void ShowDuplicates() => Filter = ListFilter.Duplicates;
 
     [RelayCommand]
     private void ToggleStar(SaveItemViewModel? item)
@@ -343,7 +361,8 @@ public sealed partial class MainViewModel : ObservableObject
             ShowResult($"{old}: rename failed · see the log", true);
             return;
         }
-        _notes.AddRename(item.Info, old, newName);
+        _notes.Rekey(item.Info.Metadata, old, newName);   // the star (and history) follow the new folder name
+        _notes.AddRename(item.Info with { FolderPath = Path.Combine(SavesFolder, newName) }, old, newName);
         try { _notes.Save(); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Log.Warn("Couldn't record the rename history · " + e.Message); }
 
@@ -717,12 +736,12 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var b = backup.Backup;
         // protected backups can still be deleted by hand, with a warning saying what's lost
-        string warning = backup.IsOriginal
-            ? $"\n\nThis is the original of {b.SaveFolderName}, from before the app changed it. It can't be recreated."
-            : backup.IsUndo ? "\n\nUndo last batch needs it." : "";
+        string? warning = backup.IsOriginal
+            ? $"This is the ORIGINAL of {b.SaveFolderName}, from before the app changed it. It can't be recreated."
+            : backup.IsUndo ? "Undo last batch needs it." : null;
         if (!await _platform.ConfirmAsync(backup.IsProtected ? "Delete a kept backup" : "Delete backup",
-                $"Permanently delete the {b.Reason.ToLowerInvariant()} backup of {b.SaveFolderName} from {Format.DateTime(b.Created)}? This can't be undone.{warning}",
-                "Delete"))
+                $"Permanently delete the {b.Reason.ToLowerInvariant()} backup of {b.SaveFolderName} from {Format.DateTime(b.Created)}? This can't be undone.",
+                "Delete", warning))
             return;
         if (IsBusy) return;
         BeginBusy($"Deleting backup of {b.SaveFolderName}");
@@ -816,7 +835,12 @@ public sealed partial class MainViewModel : ObservableObject
                 {
                     var to = await Task.Run(() => _trash.Restore(t, SavesFolder));
                     ok++;
-                    if (Path.GetFileName(to) != t.SaveName) renamed.Add(Path.GetFileName(to));
+                    if (Path.GetFileName(to) != t.SaveName)
+                    {
+                        renamed.Add(Path.GetFileName(to));
+                        _notes.Rekey(t.Metadata, t.SaveName, Path.GetFileName(to));   // its star stays with it under the new name
+                        try { _notes.Save(); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+                    }
                 }
                 catch (Exception e) { failed++; Log.Error($"{t.SaveName}: couldn't restore from the trash · {e.Message}"); }
             }
@@ -829,12 +853,16 @@ public sealed partial class MainViewModel : ObservableObject
               + (renamed.Count > 0 ? $" · name taken, so: {string.Join(", ", renamed)}" : ""), failed > 0);
     }
 
-    private async Task DeleteForeverAsync(IReadOnlyList<TrashItem> items)
+    private async Task DeleteForeverAsync(IReadOnlyList<TrashItem> items, bool emptying)
     {
         if (items.Count == 0 || IsBusy) return;
-        if (!await _platform.ConfirmAsync("Delete permanently",
-                $"Permanently delete {(items.Count == 1 ? items[0].SaveName : $"{items.Count} saves")} ({Format.Size(items.Sum(i => i.SizeBytes))})? This can't be undone.",
-                "Delete"))
+        string what = items.Count == 1 ? items[0].SaveName : $"{items.Count} saves";
+        string size = Format.Size(items.Sum(i => i.SizeBytes));
+        if (!await _platform.ConfirmAsync(emptying ? "Empty trash" : "Delete permanently",
+                emptying
+                    ? $"Permanently delete everything in the trash: {what} ({size})? This can't be undone."
+                    : $"Permanently delete {what} ({size})? This can't be undone.",
+                emptying ? "Empty trash" : "Delete"))
             return;
         int ok = 0;
         foreach (var t in items)

@@ -238,14 +238,16 @@
                 <Button Classes="link" Content="Tagged" Command="{Binding SelectTaggedCommand}" />
                 <Button Classes="link" Content="Invert" Command="{Binding InvertSelectionCommand}" />
               </WrapPanel>
-              <!-- a filter (what the list shows), separate from the selection links above (what's ticked) -->
-              <StackPanel Orientation="Horizontal">
+              <!-- a filter (what the list shows), separate from the selection links above (what's ticked); an even 2 x 2 grid so every button is the same size -->
+              <UniformGrid Columns="2" Margin="0,0,-4,0">
                 <Button Classes="seg" Classes.on="{Binding IsFilterAll}" Content="Show all" Command="{Binding ShowAllCommand}" />
                 <Button Classes="seg starFilter" Classes.on="{Binding IsFilterStarred}" Content="{Binding StarredLabel}" Command="{Binding ShowStarredCommand}"
                         ToolTip.Tip="Only starred saves" />
                 <Button Classes="seg" Classes.on="{Binding IsFilterRenamed}" Content="{Binding RenamedLabel}" Command="{Binding ShowRenamedCommand}"
                         ToolTip.Tip="Only saves with a name of their own" />
-              </StackPanel>
+                <Button Classes="seg" Classes.on="{Binding IsFilterDuplicates}" Content="{Binding DuplicateLabel}" Command="{Binding ShowDuplicatesCommand}"
+                        IsVisible="{Binding HasDuplicateSaves}" ToolTip.Tip="Only saves that exist more than once" />
+              </UniformGrid>
               <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Classes="faint" Text="{Binding CheckedCount, StringFormat='{}{0} selected'}" VerticalAlignment="Center" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -313,6 +315,8 @@
                                        Fill="{Binding State, Converter={StaticResource StateBrush}}" ToolTip.Tip="{Binding StateLabel}" />
                             </Grid>
                             <TextBlock Text="{Binding WasLine}" Foreground="{StaticResource Cyan}" FontSize="12" IsVisible="{Binding IsRenamed}" />
+                            <TextBlock Text="{Binding DuplicateLine}" Foreground="{StaticResource Amber}" FontSize="12" IsVisible="{Binding HasDuplicates}"
+                                       TextTrimming="CharacterEllipsis" />
                             <TextBlock Text="{Binding ListLine}" Classes="faint" />
                             <TextBlock Text="{Binding TrackedQuest}" Classes="faint" TextTrimming="CharacterEllipsis"
                                        IsVisible="{Binding MatchHint, Converter={x:Static StringConverters.IsNullOrEmpty}}" />
@@ -378,6 +382,8 @@
                       </Panel>
                     </Button>
                   </StackPanel>
+                  <TextBlock Text="{Binding DuplicateLine}" Foreground="{StaticResource Amber}" IsVisible="{Binding HasDuplicates}" Margin="0,-6,0,0"
+                             ToolTip.Tip="Same playthrough and save time: these folders hold the same save" />
                   <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsRenamed}" Margin="0,-6,0,0">
                     <TextBlock Classes="faint" Text="{Binding RenamedFromLine}" VerticalAlignment="Center" />
                     <Button Classes="link" Content="Reset name" VerticalAlignment="Center"
@@ -796,11 +802,16 @@
               <TextBlock Classes="h1" FontSize="17" Text="DELETED SAVES" />
               <TextBlock Classes="muted" Text="{Binding Summary}" />
             </StackPanel>
-            <Button Grid.Column="1" Classes="link" Content="Select all" VerticalAlignment="Bottom" Command="{Binding SelectAllCommand}" IsVisible="{Binding HasRows}" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom" IsVisible="{Binding HasRows}">
+              <TextBlock Classes="faint" Text="Sort" VerticalAlignment="Center" Margin="0,0,8,0" />
+              <Button Classes="seg sort" Classes.on="{Binding IsSortDeleted}" Content="{Binding DeletedSortLabel}" Command="{Binding SortByDeletedCommand}" />
+              <Button Classes="seg sort" Classes.on="{Binding IsSortName}" Content="{Binding NameSortLabel}" Command="{Binding SortByNameCommand}" />
+              <Button Classes="link" Content="Select all" VerticalAlignment="Center" Margin="12,0,0,0" Command="{Binding SelectAllCommand}" />
+            </StackPanel>
           </Grid>
           <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,14,0,0">
             <Button Classes="danger" Content="Empty trash" Command="{Binding EmptyCommand}" />
-            <Button Classes="danger" Content="Delete permanently" Command="{Binding DeleteForeverCommand}" />
+            <Button Classes="danger" Content="{Binding DeleteForeverText}" Command="{Binding DeleteForeverCommand}" />
             <Button Classes="primary" Content="{Binding RestoreText}" Command="{Binding RestoreCommand}" />
             <Button Content="Close" Command="{Binding CloseCommand}" />
           </StackPanel>
@@ -915,6 +926,12 @@
         <StackPanel Spacing="16">
           <TextBlock x:Name="DialogTitle" Classes="h1" FontSize="17" />
           <TextBlock x:Name="DialogMessage" TextWrapping="Wrap" LineHeight="21" />
+          <Border x:Name="DialogWarning" Classes="warning" IsVisible="False">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Left" Text="⚠" FontSize="20" Margin="0,-2,12,0" VerticalAlignment="Top" Foreground="{StaticResource Amber}" />
+              <TextBlock x:Name="DialogWarningText" TextWrapping="Wrap" LineHeight="21" FontWeight="Bold" Foreground="{StaticResource Amber}" />
+            </DockPanel>
+          </Border>
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
             <Button x:Name="DialogCancel" Content="Cancel" Click="OnDialogCancel" />
             <Button x:Name="DialogConfirm" Classes="primary" Click="OnDialogConfirm" />

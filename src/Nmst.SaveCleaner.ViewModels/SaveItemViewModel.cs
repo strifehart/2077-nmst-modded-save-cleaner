@@ -23,6 +23,18 @@ public sealed partial class SaveItemViewModel : ObservableObject
         nameof(OriginalName), nameof(IsRenamed), nameof(WasLine), nameof(RenamedFromLine), nameof(IsInRotatingSlot))]
     private SaveInfo _info;
 
+    /// <summary>Other folders holding the same game save (same playthrough and in-game save time); empty when none.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasDuplicates), nameof(DuplicateLine))]
+    private IReadOnlyList<string> _duplicateOf = [];
+    public bool HasDuplicates => DuplicateOf.Count > 0;
+    public string DuplicateLine => DuplicateOf.Count switch
+    {
+        0 => "",
+        1 => "Same save as " + DuplicateOf[0],
+        _ => $"Same save as {DuplicateOf[0]} and {DuplicateOf.Count - 1} more",
+    };
+
     /// <summary>Starred by the user (kept in saves.json, never in the save).</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StarTip))]

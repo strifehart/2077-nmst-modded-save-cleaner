@@ -9,7 +9,7 @@ public class FolderTests
 {
     private sealed class Picker(string? pick) : IPlatformServices
     {
-        public Task<bool> ConfirmAsync(string title, string message, string confirmText) => Task.FromResult(true);
+        public Task<bool> ConfirmAsync(string title, string message, string confirmText, string? warning = null) => Task.FromResult(true);
         public Task AlertAsync(string title, string message) => Task.CompletedTask;
         public Task<string?> PickFolderAsync(string title, string? startFolder) => Task.FromResult(pick);
         public void OpenFolder(string path) { }
@@ -145,7 +145,7 @@ public class BusyTimeTests
 
 file sealed class ViewModelTestsPlatform : IPlatformServices
 {
-    public Task<bool> ConfirmAsync(string title, string message, string confirmText) => Task.FromResult(true);
+    public Task<bool> ConfirmAsync(string title, string message, string confirmText, string? warning = null) => Task.FromResult(true);
     public Task AlertAsync(string title, string message) => Task.CompletedTask;
     public Task<string?> PickFolderAsync(string title, string? startFolder) => Task.FromResult<string?>(null);
     public void OpenFolder(string path) { }

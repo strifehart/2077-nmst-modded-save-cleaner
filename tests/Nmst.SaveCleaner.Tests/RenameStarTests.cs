@@ -118,6 +118,65 @@ public class RenameStarTests
         foreach (var (name, bytes) in before) Assert.Equal(bytes, File.ReadAllBytes(Path.Combine(save, name!)));
     }
 
+    /// <summary>Two folders holding the same save: the source under its own name and a copy named "Copy A".</summary>
+    private static (string, string) TwoCopies(TempDir t, string src)
+    {
+        var a = t.CopySave(src);
+        var b = Directory.CreateDirectory(Path.Combine(t.Saves, "Copy A")).FullName;
+        foreach (var f in Directory.GetFiles(src)) File.Copy(f, Path.Combine(b, Path.GetFileName(f)));
+        return (a, b);
+    }
+
+    [Fact]
+    public void Each_copy_of_a_save_has_its_own_star()
+    {
+        var src = Any();
+        if (src is null) return;
+        using var t = new TempDir();
+        var (a, b) = TwoCopies(t, src);
+        var notes = new SaveNotes(Path.Combine(t.Root, "saves.json"));
+
+        notes.SetStarred(SaveScanner.Read(a), true);
+        Assert.True(notes.IsStarred(SaveScanner.Read(a)));
+        Assert.False(notes.IsStarred(SaveScanner.Read(b)));
+        Assert.Equal(SaveNotes.IdentityOf(SaveScanner.Read(a).Metadata), SaveNotes.IdentityOf(SaveScanner.Read(b).Metadata));
+    }
+
+    [Fact]
+    public async Task Duplicates_are_marked_and_filtered_and_old_stars_carry_over()
+    {
+        var src = Any();
+        if (src is null) return;
+        using var t = new TempDir();
+        var (a, b) = TwoCopies(t, src);
+        // a saves.json from before stars were per copy: keyed by identity alone
+        var id = SaveNotes.IdentityOf(SaveScanner.Read(a).Metadata)!;
+        File.WriteAllText(Path.Combine(t.Root, "saves.json"),
+            $$"""{ "Version": 1, "Saves": { "{{id}}": { "Starred": true, "StarredUtc": null, "Renames": [] } } }""");
+
+        var vm = new MainViewModel(new ViewModelTests.FakePlatform(), t.Saves, t.Backups, null) { IsGameRunning = () => false, MinBusyTime = TimeSpan.Zero };
+        await vm.ReloadCommand.ExecuteAsync(null);
+        vm.ExpandAllCommand.Execute(null);
+        var items = vm.Rows.OfType<SaveItemViewModel>().ToList();
+        var ia = items.Single(i => i.Name == Path.GetFileName(a));
+        var ib = items.Single(i => i.Name == "Copy A");
+
+        Assert.True(ia.IsStarred && ib.IsStarred);                              // what looked starred stays starred
+        Assert.Equal(["Copy A"], ia.DuplicateOf);
+        Assert.Equal("Same save as " + Path.GetFileName(a), ib.DuplicateLine);
+        Assert.Equal(2, vm.DuplicateCount);
+        vm.Filter = MainViewModel.ListFilter.Duplicates;
+        Assert.Equal(2, vm.Rows.OfType<SaveItemViewModel>().Count());
+
+        // from now on they're separate: unstarring one leaves the other
+        vm.ToggleStarCommand.Execute(ib);
+        Assert.True(ia.IsStarred);
+        Assert.False(ib.IsStarred);
+        var notes = new SaveNotes(Path.Combine(t.Root, "saves.json"));
+        Assert.True(notes.IsStarred(SaveScanner.Read(a)));
+        Assert.False(notes.IsStarred(SaveScanner.Read(b)));
+    }
+
     private static async Task<T> WaitFor<T>(Func<T?> get) where T : class
     {
         var end = DateTime.Now.AddSeconds(30);

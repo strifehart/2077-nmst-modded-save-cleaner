@@ -4,7 +4,8 @@ namespace Nmst.SaveCleaner.ViewModels;
 public interface IPlatformServices
 {
     /// <summary>Shows a yes/no dialog and returns true for the confirm button.</summary>
-    Task<bool> ConfirmAsync(string title, string message, string confirmText);
+    /// <param name="warning">What the action costs, shown apart from the message so it isn't missed.</param>
+    Task<bool> ConfirmAsync(string title, string message, string confirmText, string? warning = null);
 
     /// <summary>Shows a message with a single OK button.</summary>
     Task AlertAsync(string title, string message);

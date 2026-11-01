@@ -144,12 +144,14 @@ public partial class MainWindow : Window
     private TaskCompletionSource<bool>? _dialog;
 
     /// <summary>Shows a confirm (cancelText set) or alert (cancelText null) card over the page; true = confirmed.</summary>
-    public Task<bool> ShowDialogAsync(string title, string message, string confirmText, string? cancelText)
+    public Task<bool> ShowDialogAsync(string title, string message, string confirmText, string? cancelText, string? warning = null)
     {
         _dialog?.TrySetResult(false);
         _dialog = new TaskCompletionSource<bool>();
         DialogTitle.Text = title.ToUpperInvariant();
         DialogMessage.Text = message;
+        DialogWarningText.Text = warning;
+        DialogWarning.IsVisible = warning is not null;
         DialogConfirm.Content = confirmText;
         DialogCancel.Content = cancelText;
         DialogCancel.IsVisible = cancelText is not null;

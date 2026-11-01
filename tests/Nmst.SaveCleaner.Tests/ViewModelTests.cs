@@ -10,7 +10,7 @@ public class ViewModelTests
     internal sealed class FakePlatform : IPlatformServices
     {
         public List<string> Confirms { get; } = [];
-        public Task<bool> ConfirmAsync(string title, string message, string confirmText) { Confirms.Add(message); return Task.FromResult(true); }
+        public Task<bool> ConfirmAsync(string title, string message, string confirmText, string? warning = null) { Confirms.Add(warning is null ? message : message + "\n\n" + warning); return Task.FromResult(true); }
         public Task AlertAsync(string title, string message) => Task.CompletedTask;
         public string? Pick { get; set; }
         public Task<string?> PickFolderAsync(string title, string? startFolder) => Task.FromResult(Pick);

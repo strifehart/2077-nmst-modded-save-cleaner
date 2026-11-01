@@ -27,11 +27,12 @@ public sealed partial class TrashRowViewModel(TrashItem item, GameNames names, A
 public sealed partial class TrashViewModel : ObservableObject
 {
     private readonly GameNames _names;
-    private readonly Func<IReadOnlyList<TrashItem>, Task> _restore, _deleteForever;
+    private readonly Func<IReadOnlyList<TrashItem>, Task> _restore;
+    private readonly Func<IReadOnlyList<TrashItem>, bool, Task> _deleteForever;   // (items, emptying the whole trash)
     private readonly Action _close;
 
     public TrashViewModel(IReadOnlyList<TrashItem> items, GameNames names,
-        Func<IReadOnlyList<TrashItem>, Task> restore, Func<IReadOnlyList<TrashItem>, Task> deleteForever, Action close)
+        Func<IReadOnlyList<TrashItem>, Task> restore, Func<IReadOnlyList<TrashItem>, bool, Task> deleteForever, Action close)
     {
         _names = names;
         _restore = restore;
@@ -47,17 +48,57 @@ public sealed partial class TrashViewModel : ObservableObject
         $"{Rows.Count} save{(Rows.Count == 1 ? "" : "s")} · {Format.Size(Rows.Sum(r => r.Item.SizeBytes))}";
     private List<TrashItem> Ticked => Rows.Where(r => r.IsChecked).Select(r => r.Item).ToList();
     public string RestoreText => Ticked.Count > 1 ? $"Restore {Ticked.Count}" : "Restore";
+    public string DeleteForeverText => Ticked.Count > 1 ? $"Delete {Ticked.Count} permanently" : "Delete permanently";
 
     public void Load(IReadOnlyList<TrashItem> items)
     {
         Rows.Clear();
         foreach (var i in items) Rows.Add(new TrashRowViewModel(i, _names, Changed));
+        Resort();
         Changed();
+    }
+
+    // ---------- order: by deletion time (newest first) or by name (A–Z, numbers in natural order) ----------
+
+    public enum TrashSort { Deleted, Name }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSortDeleted), nameof(IsSortName), nameof(DeletedSortLabel), nameof(NameSortLabel))]
+    private TrashSort _sort = TrashSort.Deleted;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DeletedSortLabel), nameof(NameSortLabel))]
+    private bool _descending = true;
+
+    public bool IsSortDeleted => Sort == TrashSort.Deleted;
+    public bool IsSortName => Sort == TrashSort.Name;
+    public string DeletedSortLabel => IsSortDeleted ? (Descending ? "Deleted ↓" : "Deleted ↑") : "Deleted";
+    public string NameSortLabel => IsSortName ? (Descending ? "Name Z–A" : "Name A–Z") : "Name";
+
+    /// <summary>Picks the order; picking the one already in use reverses it.</summary>
+    [RelayCommand] private void SortByDeleted() => SortBy(TrashSort.Deleted, defaultDescending: true);
+    [RelayCommand] private void SortByName() => SortBy(TrashSort.Name, defaultDescending: false);
+
+    private void SortBy(TrashSort sort, bool defaultDescending)
+    {
+        if (Sort == sort) Descending = !Descending;
+        else { Sort = sort; Descending = defaultDescending; }
+        Resort();
+    }
+
+    // reorders the existing rows, so ticked saves stay ticked
+    private void Resort()
+    {
+        IEnumerable<TrashRowViewModel> ordered = Sort == TrashSort.Name
+            ? Rows.OrderBy(r => r.Name, NaturalComparer.Instance).ThenByDescending(r => r.Item.Deleted)
+            : Rows.OrderBy(r => r.Item.Deleted).ThenBy(r => r.Name, NaturalComparer.Instance);
+        var list = (Descending ? ordered.Reverse() : ordered).ToList();
+        Rows.Clear();
+        foreach (var r in list) Rows.Add(r);
     }
 
     private void Changed()
     {
-        foreach (var n in new[] { nameof(IsEmpty), nameof(HasRows), nameof(Summary), nameof(RestoreText) }) OnPropertyChanged(n);
+        foreach (var n in new[] { nameof(IsEmpty), nameof(HasRows), nameof(Summary), nameof(RestoreText), nameof(DeleteForeverText) }) OnPropertyChanged(n);
         RestoreCommand.NotifyCanExecuteChanged();
         DeleteForeverCommand.NotifyCanExecuteChanged();
         EmptyCommand.NotifyCanExecuteChanged();
@@ -65,8 +106,8 @@ public sealed partial class TrashViewModel : ObservableObject
 
     private bool AnyTicked() => Rows.Any(r => r.IsChecked);
     [RelayCommand(CanExecute = nameof(AnyTicked))] private Task Restore() => _restore(Ticked);
-    [RelayCommand(CanExecute = nameof(AnyTicked))] private Task DeleteForever() => _deleteForever(Ticked);
-    [RelayCommand(CanExecute = nameof(HasRows))] private Task Empty() => _deleteForever(Rows.Select(r => r.Item).ToList());
+    [RelayCommand(CanExecute = nameof(AnyTicked))] private Task DeleteForever() => _deleteForever(Ticked, false);
+    [RelayCommand(CanExecute = nameof(HasRows))] private Task Empty() => _deleteForever(Rows.Select(r => r.Item).ToList(), true);
     [RelayCommand] private void SelectAll() { foreach (var r in Rows) r.IsChecked = true; }
     [RelayCommand] private void Close() => _close();
 }
