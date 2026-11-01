@@ -275,8 +275,18 @@
             </StackPanel>
             <TextBlock DockPanel.Dock="Top" IsVisible="{Binding NoMatches}" Classes="muted" Margin="14,10" TextWrapping="Wrap"
                        Text="{Binding NoMatchesText}" />
-            <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <!-- virtualised: only the rows on screen are built, so a playthrough with hundreds of saves opens without a pause -->
               <ItemsControl ItemsSource="{Binding Rows}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.Template>
+                  <ControlTemplate>
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                      <ItemsPresenter ItemsPanel="{TemplateBinding ItemsPanel}" />
+                    </ScrollViewer>
+                  </ControlTemplate>
+                </ItemsControl.Template>
                 <ItemsControl.DataTemplates>
 
                   <DataTemplate DataType="vm:PlaythroughGroupViewModel">
@@ -349,16 +359,12 @@
 
                 </ItemsControl.DataTemplates>
               </ItemsControl>
-            </ScrollViewer>
           </DockPanel>
         </Border>
 
         <!-- right: detail / batch -->
         <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Disabled">
           <Panel Margin="26,20,26,26">
-
-            <TextBlock Classes="muted" Text="{x:Static vm:DisclaimerText.EmptyState}" TextWrapping="Wrap" MaxWidth="560"
-                       HorizontalAlignment="Left" IsVisible="{Binding ShowEmptyState}" />
 
             <!-- no saves where we looked: say so plainly and offer the way out -->
             <Border Classes="card" BorderBrush="{StaticResource Amber}" MaxWidth="640" HorizontalAlignment="Left" VerticalAlignment="Top"

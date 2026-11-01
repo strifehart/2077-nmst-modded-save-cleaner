@@ -26,6 +26,4 @@ public static class DisclaimerText
         "or any other damage that comes from using it.";
 
     public const string Accept = "I understand the risks and accept them";
-
-    public const string EmptyState = "Pick a save on the left, or tick several to work on them together.";
 }

@@ -68,7 +68,6 @@ public class FolderTests
         var vm = new MainViewModel(new Picker(null), Path.Combine(t.Root, "nowhere"), t.Backups, null) { DisclaimerAccepted = true };
         await vm.ReloadCommand.ExecuteAsync(null);
         Assert.True(vm.ShowNoSaves);
-        Assert.False(vm.ShowEmptyState);
 
         var empty = Directory.CreateDirectory(Path.Combine(t.Root, "empty")).FullName;
         Directory.CreateDirectory(Path.Combine(empty, "ManualSave-1"));   // the game leaves empty folders behind

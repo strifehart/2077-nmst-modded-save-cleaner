@@ -199,7 +199,8 @@ static class NexusShots
     {
         var list = w.GetVisualDescendants().OfType<ItemsControl>().First(i => ReferenceEquals(i.ItemsSource, vm.Rows));
         int index = vm.Rows.IndexOf(vm.Focused!);
-        var sv = list.FindAncestorOfType<ScrollViewer>()!;
+        var sv = list.GetVisualDescendants().OfType<ScrollViewer>().First();
+        list.ScrollIntoView(index);   // the list is virtualised: rows off screen have no container until scrolled to
         Pump();
         var target = list.ContainerFromIndex(Math.Max(0, index - 2));
         if (target is not null) sv.Offset = new Vector(0, target.Bounds.Y);

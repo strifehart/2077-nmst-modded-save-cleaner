@@ -122,6 +122,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (IsBusy) return;   // a running clean/restore holds on to the current list
         _flagScan?.Cancel();
         IsLoading = true;
+        StatusLine = "Loading saves…";
         try
         {
             if (!Directory.Exists(SavesFolder))
@@ -422,13 +423,12 @@ public sealed partial class MainViewModel : ObservableObject
     public bool IsCustomFolder => !PathsEqual(SavesFolder, _defaultSavesFolder);
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowNoSaves), nameof(ShowEmptyState))]
+    [NotifyPropertyChangedFor(nameof(ShowNoSaves))]
     private bool _noSavesFound;
 
     [ObservableProperty] private string _noSavesMessage = "";
 
     public bool ShowNoSaves => NoSavesFound && DisclaimerAccepted;
-    public bool ShowEmptyState => IsEmpty && !NoSavesFound;
 
     private static bool PathsEqual(string a, string b) =>
         string.Equals(Path.GetFullPath(a).TrimEnd('\\', '/'), Path.GetFullPath(b).TrimEnd('\\', '/'),
@@ -444,7 +444,7 @@ public sealed partial class MainViewModel : ObservableObject
     // ---------- selection ----------
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsBatch), nameof(IsSingle), nameof(IsEmpty), nameof(ShowEmptyState))]
+    [NotifyPropertyChangedFor(nameof(IsBatch), nameof(IsSingle), nameof(IsEmpty))]
     private int _checkedCount;
 
     public bool IsBatch => CheckedCount >= 2;
@@ -503,7 +503,7 @@ public sealed partial class MainViewModel : ObservableObject
     // ---------- focused save + backups ----------
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsSingle), nameof(IsEmpty), nameof(ShowEmptyState))]
+    [NotifyPropertyChangedFor(nameof(IsSingle), nameof(IsEmpty))]
     private SaveItemViewModel? _focused;
 
     public ObservableCollection<BackupItemViewModel> FocusedBackups { get; } = [];

@@ -29,7 +29,9 @@ public partial class MainWindow : Window
         };
         Opened += (_, _) =>
         {
-            StartIntro(); UpdateWindowChrome();
+            // the intro's clock starts with the first frame on screen, so a slow first frame can't eat into it
+            RequestAnimationFrame(_ => StartIntro());
+            UpdateWindowChrome();
         };
         Closing += (_, _) => _log?.Close();
         Intro.PointerPressed += (_, _) => SkipIntro();
@@ -181,10 +183,14 @@ public partial class MainWindow : Window
         {
             double t = (DateTime.Now - _introStart).TotalSeconds;
             RenderIntroAt(t);
-            if (t >= IntroEnd) { _introTimer?.Stop(); Intro.IsVisible = false; }
+            if (t >= IntroEnd) HideIntro();
         });
         _introTimer.Start();
     }
+
+    /// <summary>Raised once, when the intro has gone (played out or skipped). Loading the saves waits for it: building
+    /// the list blocks the window for a moment, which would otherwise freeze the intro or swallow it.</summary>
+    public event Action? IntroFinished;
 
     /// <summary>Jumps to the fade-out.</summary>
     public void SkipIntro()
@@ -224,7 +230,9 @@ public partial class MainWindow : Window
     public void HideIntro()
     {
         _introTimer?.Stop();
+        if (!Intro.IsVisible) return;
         Intro.IsVisible = false;
+        IntroFinished?.Invoke();
     }
 
     private static Color Lerp(Color a, Color b, double k) => Color.FromRgb(
