@@ -319,7 +319,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (Focused is not { } item || IsBusy || IsRenameOpen) return;
         var suggestion = $"Kept {item.Name} {item.Info.Timestamp:yyyy-MM-dd HH.mm}";
-        await AskAndRenameAsync(item, "Keep this autosave",
+        await AskAndRenameAsync(item, item.KeepSlotTitle,
             $"With a name of its own, the game can't overwrite it in the {item.Name} slot.",
             suggestion);
     }

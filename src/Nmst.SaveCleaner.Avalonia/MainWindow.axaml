@@ -427,16 +427,22 @@
                     <Ellipse Width="10" Height="10" Fill="{Binding State, Converter={StaticResource StateBrush}}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding StateLabel}" FontWeight="SemiBold" />
                   </StackPanel>
-                  <StackPanel Orientation="Horizontal" Spacing="16">
-                    <Button Classes="link" Content="Rename…" Margin="0"
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Classes="small" Content="Rename…"
                             Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RenameFocusedCommand}"
                             ToolTip.Tip="Change the name shown in the game's Load menu" />
-                    <Button Classes="link" Content="Keep this autosave…" Margin="0" IsVisible="{Binding IsInRotatingSlot}"
+                    <Button Classes="small" IsVisible="{Binding IsInRotatingSlot}"
                             Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).KeepAutosaveCommand}"
-                            ToolTip.Tip="Move it out of the slot the game reuses" />
-                    <Button Classes="link" Content="Open save folder" Margin="0"
+                            ToolTip.Tip="Move it out of the slot the game reuses">
+                      <!-- sized by the longer label (hidden), so the buttons after it don't shift between autosaves and quicksaves -->
+                      <Panel>
+                        <TextBlock Text="Keep this quicksave…" Opacity="0" />
+                        <TextBlock Text="{Binding KeepSlotTitle, StringFormat={}{0}…}" HorizontalAlignment="Center" />
+                      </Panel>
+                    </Button>
+                    <Button Classes="small" Content="Open save folder"
                             Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenFocusedFolderCommand}" />
-                    <Button Classes="link danger" Content="Delete…" Margin="0"
+                    <Button Classes="small danger" Content="Delete"
                             Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).DeleteFocusedCommand}"
                             ToolTip.Tip="Move to the trash" />
                   </StackPanel>
@@ -646,7 +652,7 @@
                     <TextBlock Text="Delete" FontWeight="SemiBold" FontSize="17" />
                     <TextBlock Classes="muted" TextWrapping="Wrap" Text="Move the selected saves to the trash." />
                   </StackPanel>
-                  <Button Grid.Column="1" Classes="danger" Content="Delete…" VerticalAlignment="Center" Command="{Binding DeleteCheckedCommand}" />
+                  <Button Grid.Column="1" Classes="danger" Content="Delete" VerticalAlignment="Center" Command="{Binding DeleteCheckedCommand}" />
                 </Grid>
               </Border>
               <Border Classes="card" IsVisible="{Binding CanUndoLastBatch}">
@@ -867,7 +873,7 @@
       </Border>
     </Border>
 
-    <!-- rename / keep this autosave: the name, checked as you type. Enter renames, Esc cancels -->
+    <!-- rename / keep this autosave or quicksave: the name, checked as you type. Enter renames, Esc cancels -->
     <Border IsVisible="{Binding IsRenameOpen}" Background="#cc040308">
       <Border Classes="card" Width="520" HorizontalAlignment="Center" VerticalAlignment="Center"
               BorderBrush="{StaticResource Pink}" Padding="26,22" Effect="drop-shadow(0 0 24 #66eb107e)" DataContext="{Binding RenameDialog}">

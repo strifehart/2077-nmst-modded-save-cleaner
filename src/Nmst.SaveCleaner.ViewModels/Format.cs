@@ -26,6 +26,9 @@ public static class Format
         _ => $"{bytes} B",
     };
 
+    /// <summary>The save stores "VeryHard"; the game's menus say "Very Hard".</summary>
+    public static string Difficulty(string d) => System.Text.RegularExpressions.Regex.Replace(d, "(?<=[a-z])(?=[A-Z])", " ");
+
     public static string State(ModdedState s) => s switch
     {
         ModdedState.Tagged => "Modded",

@@ -23,7 +23,7 @@ The plugin stops *new* saves from being tagged. This app cleans the ones that al
   deleted for good. A name the game has reused since is never overwritten: the save comes back as "… restored"
 - Star saves and filter the list to just the starred ones. Stars live in the app's `saves.json`, never in the saves
 - Renames saves: the new name is what the game's Load menu shows. Only the folder is renamed (dates kept, nothing
-  inside changes), backups follow, and *Reset name* puts the game's name back. *Keep this autosave* moves an
+  inside changes), backups follow, and *Reset name* puts the game's name back. *Keep this autosave* (or quicksave) moves an
   auto/quick save out of the slot the game reuses
 - Never keeps two identical backups of a save, and marks the ones it always keeps: **Original** (the save as the
   game wrote it, before the app cleaned it), **Manual** and **Undo**. *Backups → Clean up backups…* reviews the

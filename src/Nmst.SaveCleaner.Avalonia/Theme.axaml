@@ -209,6 +209,11 @@
     <Setter Property="BorderBrush" Value="{StaticResource Red}" />
     <Setter Property="Foreground" Value="#ff8aa6" />
   </Style>
+  <!-- a save's own actions under its title: real buttons, a size down from the page's main ones -->
+  <Style Selector="Button.small">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Padding" Value="11,4" />
+  </Style>
   <Style Selector="Button.link">
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="Padding" Value="0" />

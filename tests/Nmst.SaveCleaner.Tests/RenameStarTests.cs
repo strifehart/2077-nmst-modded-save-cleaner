@@ -251,4 +251,21 @@ public class RenameStarTests
         Assert.True(vm.Focused.IsStarred);
         Assert.False(vm.Focused.IsRenamed);
     }
+
+    [Theory]
+    [InlineData("AutoSave-3", true, "Keep this autosave")]
+    [InlineData("QuickSave-2", true, "Keep this quicksave")]
+    [InlineData("ManualSave-12", false, "Keep this autosave")]
+    public void Keep_this_slot_names_the_kind_of_save(string folder, bool rotating, string title)
+    {
+        var item = new SaveItemViewModel(new SaveInfo(Path.Combine(@"C:saves", folder), null, null, 0, DateTime.Now), Nmst.SaveCleaner.Core.Localization.GameNames.Empty, 0);
+        Assert.Equal(rotating, item.IsInRotatingSlot);
+        if (rotating) Assert.Equal(title, item.KeepSlotTitle);
+    }
+
+    [Theory]
+    [InlineData("VeryHard", "Very Hard")]
+    [InlineData("Story", "Story")]
+    [InlineData("Easy", "Easy")]
+    public void Difficulty_reads_like_the_game_menu(string stored, string shown) => Assert.Equal(shown, Format.Difficulty(stored));
 }

@@ -20,7 +20,7 @@ public sealed partial class SaveItemViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(Name), nameof(ListLine), nameof(Location), nameof(TrackedQuest), nameof(Objective), nameof(MainQuest),
         nameof(MetaLine), nameof(PlayTime), nameof(Level), nameof(StreetCred), nameof(LifePath), nameof(Patch), nameof(Body), nameof(Reflexes),
         nameof(Tech), nameof(Intelligence), nameof(Cool), nameof(StateDetail), nameof(Pills), nameof(BuildLine), nameof(BuildDetails),
-        nameof(OriginalName), nameof(IsRenamed), nameof(WasLine), nameof(RenamedFromLine), nameof(IsInRotatingSlot))]
+        nameof(OriginalName), nameof(IsRenamed), nameof(WasLine), nameof(RenamedFromLine), nameof(IsInRotatingSlot), nameof(KeepSlotTitle))]
     private SaveInfo _info;
 
     /// <summary>Other folders holding the same game save (same playthrough and in-game save time); empty when none.</summary>
@@ -78,8 +78,10 @@ public sealed partial class SaveItemViewModel : ObservableObject
                              && !SaveRenamer.IsGameName(Name);
     public string WasLine => IsRenamed ? "was " + OriginalName : "";
     public string RenamedFromLine => IsRenamed ? "Renamed from " + OriginalName : "";
-    /// <summary>Still in an auto/quick slot the game reuses: "Keep this autosave" moves it out.</summary>
+    /// <summary>Still in an auto/quick slot the game reuses: "Keep this autosave" (or quicksave) moves it out.</summary>
     public bool IsInRotatingSlot => SaveInfo.KindOf(Name) is SaveKind.Auto or SaveKind.Quick;
+    /// <summary>"Keep this autosave" or "Keep this quicksave", by the slot it's in.</summary>
+    public string KeepSlotTitle => SaveInfo.KindOf(Name) == SaveKind.Quick ? "Keep this quicksave" : "Keep this autosave";
     public bool IsReadable => M is not null;
     public bool IsTagged => State is ModdedState.Tagged or ModdedState.StickyOnly;
     public bool IsClean => State == ModdedState.Clean;
@@ -132,7 +134,7 @@ public sealed partial class SaveItemViewModel : ObservableObject
         {
             if (M is null) return [];
             var p = new List<string> { "Patch " + M.Patch };
-            if (M.Difficulty.Length > 0) p.Add(M.Difficulty + " difficulty");
+            if (M.Difficulty.Length > 0) p.Add(Format.Difficulty(M.Difficulty) + " difficulty");
             if (M.HasPhantomLiberty) p.Add("Phantom Liberty");
             if (M.BodyGender.Length > 0) p.Add(M.BodyGender == "Female" ? "Female V" : "Male V");
             if (M.IsPointOfNoReturn) p.Add("Point of no return");
