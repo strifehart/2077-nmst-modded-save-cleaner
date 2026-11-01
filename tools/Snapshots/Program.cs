@@ -209,6 +209,9 @@ try
 
     _ = w.ShowDialogAsync("Clean modded tag", "Clean 3 saves? Each one is backed up first (about 5,0 MB of backups).", "Clean", "Cancel");
     Shot("10_dialog");
+    _ = w.ShowDialogAsync("Delete a kept backup", "Permanently delete the before clean backup of renametest from 1 Nov 2026, 15:53? This can't be undone.", "Delete", "Cancel",
+        "This is the ORIGINAL of renametest, from before the app changed it. It can't be recreated.");
+    Shot("10b_dialog_warning");
 
     Console.WriteLine("snapshots in " + outDir);
 
