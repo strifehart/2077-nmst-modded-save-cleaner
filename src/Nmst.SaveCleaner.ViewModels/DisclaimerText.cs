@@ -4,6 +4,13 @@ namespace Nmst.SaveCleaner.ViewModels;
 
 public static class DisclaimerText
 {
+    /// <summary>
+    /// Version of the terms below, separate from the app version. Acceptance is remembered per terms version, so the
+    /// disclaimer only comes back when this goes up. Bump it whenever the meaning of the text changes (a test pins
+    /// the text to this number, so an edit without a bump fails the build's tests).
+    /// </summary>
+    public const int Version = 1;
+
     public const string Title = "Before you continue";
 
     public const string Body =

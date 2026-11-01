@@ -15,7 +15,7 @@ Requirements
 How to use
   1. Close Cyberpunk 2077 (the app won't change saves while the game runs).
   2. Run NMSTSaveCleaner.exe. Nothing to install; it's one self-contained file.
-  3. Read and accept the disclaimer (shown every launch).
+  3. Read and accept the disclaimer (shown again only if the terms change).
   4. Pick a tagged save (red or orange dot) and press "Clean tag", or tick several (or "Tagged" to
      select all of them) and run "Clean modded tag".
 
@@ -31,7 +31,7 @@ Every save is backed up before it's changed, and can be restored from its panel.
   %LOCALAPPDATA%\Cyberpunk 2077 - NMST Modded Save Cleaner\
     Backups\   full copies taken before every change (never deleted automatically)
     Logs\      everything the app did
-    settings.json   music mute/volume and a saves folder you picked
+    settings.json   music mute/volume, a saves folder you picked, the terms you accepted
 
 Saves are found automatically (Windows: Saved Games\CD Projekt Red\Cyberpunk 2077). If yours are somewhere
 else, use "Change folder"; the choice is remembered.

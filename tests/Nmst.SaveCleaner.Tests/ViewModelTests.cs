@@ -1,3 +1,4 @@
+using Nmst.SaveCleaner.Core;
 using Nmst.SaveCleaner.Core.Logging;
 using Nmst.SaveCleaner.Core.Saves;
 using Nmst.SaveCleaner.ViewModels;
@@ -30,15 +31,40 @@ public class ViewModelTests
     }
 
     [Fact]
-    public void Disclaimer_must_be_ticked_and_is_never_preaccepted()
+    public async Task Disclaimer_must_be_ticked_and_is_remembered_per_terms_version()
     {
         using var t = new TempDir();
-        var vm = new MainViewModel(new FakePlatform(), t.Saves, t.Backups, null);
+        var settings = Path.Combine(t.Root, "settings.json");
+        var vm = new MainViewModel(new FakePlatform(), t.Saves, t.Backups, null, settingsPath: settings);
         Assert.False(vm.DisclaimerAccepted);
         Assert.False(vm.AcceptDisclaimerCommand.CanExecute(null));
         vm.DisclaimerTicked = true;
         Assert.True(vm.AcceptDisclaimerCommand.CanExecute(null));
+        await vm.AcceptDisclaimerCommand.ExecuteAsync(null);
+
+        // next launch: the same terms are already accepted
+        Assert.True(new MainViewModel(new FakePlatform(), t.Saves, t.Backups, null, settingsPath: settings).DisclaimerAccepted);
+
+        // terms accepted for an older version come back
+        var old = AppSettings.Load(settings);
+        old.AcceptedTermsVersion = DisclaimerText.Version - 1;
+        old.Save(settings);
+        Assert.False(new MainViewModel(new FakePlatform(), t.Saves, t.Backups, null, settingsPath: settings).DisclaimerAccepted);
+
+        // no settings at all: never pre-accepted
         Assert.False(new MainViewModel(new FakePlatform(), t.Saves, t.Backups, null).DisclaimerAccepted);
+    }
+
+    /// <summary>
+    /// The terms text is pinned to its version. If this fails you changed the disclaimer: if the meaning changed,
+    /// bump DisclaimerText.Version (everyone sees it again); either way, update the hash here.
+    /// </summary>
+    [Fact]
+    public void Terms_text_is_pinned_to_its_version()
+    {
+        var text = DisclaimerText.Title + "\n" + DisclaimerText.Body + "\n" + DisclaimerText.Accept;
+        var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text)));
+        Assert.Equal((1, "1F9ADA850E3BB45D"), (DisclaimerText.Version, hash[..16]));
     }
 
     [Fact]

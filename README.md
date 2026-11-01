@@ -28,7 +28,7 @@ The plugin stops *new* saves from being tagged. This app cleans the ones that al
 ## Using it
 
 1. Close Cyberpunk 2077.
-2. Start the app and read the disclaimer. It's shown on every launch.
+2. Start the app and read the disclaimer. Once accepted it isn't shown again, unless a later version changes the terms.
 3. Pick a tagged save (red or orange dot) and press **Clean tag**, or tick several (or **Tagged** to select all of
    them) and run **Clean modded tag**.
 
@@ -50,7 +50,7 @@ The app keeps its own files in `%LOCALAPPDATA%\Cyberpunk 2077 - NMST Modded Save
 | --- | --- |
 | `Backups\<save>\<date-time>\` | full copies of saves taken before every change |
 | `Logs\ModdedSaveCleaner.log` | everything the app did |
-| `settings.json` | music mute and volume |
+| `settings.json` | music mute and volume, a saves folder you picked, the terms version you accepted |
 
 Backups are never deleted automatically. Delete old ones from a save's panel when you no longer need them.
 

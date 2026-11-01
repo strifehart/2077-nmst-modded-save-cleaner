@@ -2,12 +2,13 @@ using System.Text.Json;
 
 namespace Nmst.SaveCleaner.Core;
 
-/// <summary>
-/// Preferences kept between launches. The disclaimer acceptance is deliberately not stored here: it's asked for
-/// on every launch.
-/// </summary>
+/// <summary>Preferences kept between launches.</summary>
 public sealed class AppSettings
 {
+    /// <summary>Version of the disclaimer terms the user accepted (0 = never). The disclaimer is shown again
+    /// whenever the app ships newer terms.</summary>
+    public int AcceptedTermsVersion { get; set; }
+
     public bool MusicMuted { get; set; }
 
     /// <summary>0..1. Starts modest so the music never blasts on first launch.</summary>

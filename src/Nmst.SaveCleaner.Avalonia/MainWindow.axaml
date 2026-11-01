@@ -598,7 +598,7 @@
       </Grid>
     </DockPanel>
 
-    <!-- disclaimer: shown on every launch until ticked and accepted -->
+    <!-- disclaimer: shown until the current terms version is ticked and accepted once (remembered in settings) -->
     <Border IsVisible="{Binding !DisclaimerAccepted}" Background="#ee040308">
       <Border Classes="card" Width="680" HorizontalAlignment="Center" VerticalAlignment="Center"
               BorderBrush="{StaticResource Pink}" Padding="30,26" Effect="drop-shadow(0 0 28 #66eb107e)">

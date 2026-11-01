@@ -34,6 +34,7 @@ public partial class App : Application
             if (migrateError is not null) vm.Log.Warn("Couldn't move backups from the old SaveBrowser folder: " + migrateError);
             window.DataContext = vm;
             desktop.MainWindow = window;
+            window.Opened += async (_, _) => await vm.StartAsync();
 
             // safety net: an unexpected error is logged and shown, instead of silently closing the app
             Dispatcher.UIThread.UnhandledException += (_, e) =>

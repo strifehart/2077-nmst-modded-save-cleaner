@@ -36,6 +36,7 @@ public sealed partial class MainViewModel : ObservableObject
         _settings = settingsPath is null ? new AppSettings() : AppSettings.Load(settingsPath);
         _musicMuted = _settings.MusicMuted;
         _musicVolume = Math.Round(_settings.MusicVolume * 100);
+        _disclaimerAccepted = _settings.AcceptedTermsVersion >= DisclaimerText.Version;
         if (music is not null) music.NowPlayingChanged += () => OnUi(() => NowPlaying = music.NowPlaying);
         Log = new ActivityLog(logFile);
         Log.EntryAdded += e => OnUi(() =>
@@ -66,7 +67,7 @@ public sealed partial class MainViewModel : ObservableObject
     public string BackupsRoot => _backups.Root;
     public string Disclaimer => DisclaimerText.Body;
 
-    // ---------- disclaimer (shown on every launch, never remembered) ----------
+    // ---------- disclaimer (until the current terms version is accepted once) ----------
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AcceptDisclaimerCommand))]
@@ -80,7 +81,17 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task AcceptDisclaimer()
     {
         DisclaimerAccepted = true;
-        Log.Info("Disclaimer accepted for this session");
+        _settings.AcceptedTermsVersion = DisclaimerText.Version;
+        SaveSettingsNow();
+        Log.Info($"Disclaimer accepted (terms v{DisclaimerText.Version})");
+        await ReloadAsync();
+    }
+
+    /// <summary>Loads the saves straight away when the current terms were accepted on an earlier launch.</summary>
+    public async Task StartAsync()
+    {
+        if (!DisclaimerAccepted) return;
+        Log.Info($"Terms v{DisclaimerText.Version} already accepted");
         await ReloadAsync();
     }
 
