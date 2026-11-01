@@ -265,6 +265,28 @@
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
+  <!-- top bar: text and icon buttons share one height -->
+  <Style Selector="StackPanel#AppButtons > Button">
+    <Setter Property="Height" Value="36" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <!-- the bin button: a square icon, widening for the count while the trash has saves -->
+  <Style Selector="Button.bin">
+    <Setter Property="MinWidth" Value="36" />
+    <Setter Property="Padding" Value="7,0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.trashCount">
+    <Setter Property="Background" Value="#33eb107e" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="Padding" Value="5,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.trashCount TextBlock">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{StaticResource Pink}" />
+  </Style>
+
   <!-- minimise / maximise / close in the top bar (the system title bar is hidden) -->
   <Style Selector="Button.caption">
     <Setter Property="Width" Value="46" />

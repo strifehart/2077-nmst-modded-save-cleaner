@@ -159,6 +159,7 @@ public sealed partial class MainViewModel : ObservableObject
             UpdateBatch();
             UpdateStatus();
             RefreshLastBatch();
+            _ = UpdateTrashCountAsync();
             Log.Info($"Scanned {SavesFolder}:{_all.Count} saves in {_groups.Count(g => !g.Playthrough.IsUngrouped)} playthroughs");
             StartFlagScan();
         }
@@ -758,7 +759,7 @@ public sealed partial class MainViewModel : ObservableObject
         int ponr = items.Count(i => i.Info.Metadata?.IsPointOfNoReturn == true);
         string what = items.Count == 1 ? items[0].Name : $"{items.Count} saves";
         if (!await _platform.ConfirmAsync(items.Count == 1 ? "Delete save" : "Delete saves",
-                $"Move {what} to the trash? Backups → Deleted saves has {(items.Count == 1 ? "it" : "them")} if you change your mind."
+                $"Move {what} to the trash? Deleted saves (the bin next to Backups) has {(items.Count == 1 ? "it" : "them")} if you change your mind."
                 + (ponr > 0 ? $"\n\n{(items.Count == 1 ? "This is a point-of-no-return save" : $"{ponr} of these are point-of-no-return saves")}: the game's ending saves go back to {(ponr == 1 ? "it" : "them")}." : "")
                 + "\n\nCloud sync removes deleted saves from the cloud too.",
                 "Delete"))
@@ -790,14 +791,21 @@ public sealed partial class MainViewModel : ObservableObject
     private TrashViewModel? _trashView;
     public bool IsTrashOpen => TrashView is not null;
 
-    /// <summary>"Deleted saves (3)" in the Backups menu.</summary>
-    [ObservableProperty] private string _trashMenuText = "Deleted saves";
+    /// <summary>How many saves are in the trash: the count on the top bar's bin button.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTrash), nameof(TrashTip))]
+    private int _trashCount;
+    public bool HasTrash => TrashCount > 0;
+    public string TrashTip => TrashCount == 0 ? "Deleted saves" : $"Deleted saves ({TrashCount})";
+
+    private async Task UpdateTrashCountAsync() => TrashCount = await Task.Run(() => _trash.List().Count);
 
     [RelayCommand]
     private async Task OpenTrashAsync()
     {
         if (IsBusy || IsTrashOpen) return;
         var items = await Task.Run(_trash.List);
+        TrashCount = items.Count;
         TrashView = new TrashViewModel(items, _names, RestoreFromTrashAsync, DeleteForeverAsync, () => TrashView = null);
     }
 
@@ -805,7 +813,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var items = await Task.Run(_trash.List);
         TrashView?.Load(items);
-        TrashMenuText = items.Count == 0 ? "Deleted saves" : $"Deleted saves ({items.Count})";
+        TrashCount = items.Count;
     }
 
     private async Task RestoreFromTrashAsync(IReadOnlyList<TrashItem> items)
@@ -868,9 +876,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     public async Task UpdateBackupsSummaryAsync()
     {
-        var (size, count, trashed) = await Task.Run(() => (_backups.TotalSize(), _backups.Counts().Values.Sum(), _trash.List().Count));
+        var (size, count) = await Task.Run(() => (_backups.TotalSize(), _backups.Counts().Values.Sum()));
         BackupsSummary = count == 0 ? "No backups yet" : $"{Format.Size(size)} in {count} backup{(count == 1 ? "" : "s")}";
-        TrashMenuText = trashed == 0 ? "Deleted saves" : $"Deleted saves ({trashed})";
     }
 
     [ObservableProperty]

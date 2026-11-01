@@ -52,7 +52,11 @@
             <Border Width="1" Background="{StaticResource Line}" Margin="4,4" />
             <Button Content="Change folder" Command="{Binding ChangeFolderCommand}" />
             <Button Content="Reload" Command="{Binding ReloadCommand}" />
-            <Button x:Name="BackupsButton" Content="Backups">
+            <Button x:Name="BackupsButton">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="Backups" />
+                <Path Classes="glyph" Stroke="{StaticResource Cyan}" Data="M0 0 L4.5 4.5 L9 0" VerticalAlignment="Center" Margin="0,2,0,0" />
+              </StackPanel>
               <Button.Flyout>
                 <Flyout Placement="BottomEdgeAlignedRight" Opening="OnBackupsMenuOpening">
                   <StackPanel Spacing="10" MinWidth="260">
@@ -60,12 +64,25 @@
                     <TextBlock Text="{Binding BackupsSummary}" FontWeight="SemiBold" />
                     <Button Classes="link" Content="Clean up backups…" Command="{Binding CleanUpBackupsCommand}" Click="OnBackupsMenuItemClick"
                             />
-                    <Button Classes="link" Content="{Binding TrashMenuText}" Command="{Binding OpenTrashCommand}" Click="OnBackupsMenuItemClick" />
                     <Button Classes="link" Content="Open backups folder" Command="{Binding OpenBackupsFolderCommand}" Click="OnBackupsMenuItemClick"
                             ToolTip.Tip="{Binding BackupsRoot}" />
                   </StackPanel>
                 </Flyout>
               </Button.Flyout>
+            </Button>
+            <!-- deleted saves (the app's trash); the count shows while anything is in it -->
+            <Button Classes="bin" ToolTip.Tip="{Binding TrashTip}" Command="{Binding OpenTrashCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Viewbox Width="20" Height="20">
+                  <Canvas Width="24" Height="24">
+                    <Path Classes="glyph" Stroke="{StaticResource Pink}" Data="M3.5 6 H20.5 M9 6 V3.5 H15 V6" />
+                    <Path Classes="glyph" Stroke="{StaticResource Cyan}" Data="M5.5 6 L6.8 20.5 H17.2 L18.5 6 M10 10 V17 M14 10 V17" />
+                  </Canvas>
+                </Viewbox>
+                <Border Classes="trashCount" IsVisible="{Binding HasTrash}">
+                  <TextBlock Text="{Binding TrashCount}" />
+                </Border>
+              </StackPanel>
             </Button>
             <Button Command="{Binding ToggleLogCommand}">
               <StackPanel Orientation="Horizontal" Spacing="6">
