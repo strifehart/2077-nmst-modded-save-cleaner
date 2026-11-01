@@ -1,8 +1,8 @@
 # NMST Modded Save Cleaner
 
-A companion app to **No Modded Save Tag** (NMST) for Cyberpunk 2077. It has one job: remove the "modded" tag from
-saves you've already made, the flag behind the modded icon and warning on PC and the broken-trophy icon on consoles
-(via Cross Progression).
+A companion app to **No Modded Save Tag** (NMST) for Cyberpunk 2077. Its main job is removing the "modded" tag
+from saves you've already made, the flag behind the modded icon and warning on PC and the broken-trophy icon on
+consoles (via Cross Progression). It can also rename, star and delete saves, and restore them from backups.
 
 The plugin stops *new* saves from being tagged. This app cleans the ones that already are.
 

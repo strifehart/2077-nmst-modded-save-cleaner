@@ -14,12 +14,12 @@ public static class DisclaimerText
     public const string Title = "Before you continue";
 
     public const string Body =
-        AppInfo.Name + " has one job: it removes the \"modded\" tag from Cyberpunk 2077 saves, the flag behind the " +
-        "modded icon and warning, and the broken-trophy icon on consoles. To do that it changes save files, and " +
+        AppInfo.Name + "'s main job is removing the \"modded\" tag from Cyberpunk 2077 saves, the flag behind the " +
+        "modded icon and warning, and the broken-trophy icon on consoles. It can also rename, star and delete saves, " +
+        "and restore them from backups. Cleaning, renaming, deleting and restoring all change your save files, and " +
         "changing save files can corrupt them and lose progress.\n\n" +
         "• It's an unofficial fan tool, a companion to the No Modded Save Tag plugin. It isn't made, supported or endorsed by CD Projekt RED.\n" +
-        "• The app backs up every save before changing it, but backups can fail too. Keep your own copies of saves you care about.\n" +
-        "• Saves synced by Steam Cloud, GOG Galaxy or Cross Progression go wherever the game sends them.\n" +
+        "• The app backs up saves before cleaning or restoring them, and deleted saves go to its trash first, but backups can fail too. Keep your own copies of saves you care about.\n" +
         "• Game patches can change the save format at any time and break this app.\n\n" +
         "The software is provided \"as is\", without warranty of any kind. You use it entirely at your own risk. " +
         "The author isn't liable for any lost, damaged or corrupted saves, lost progress, achievements or trophies, " +

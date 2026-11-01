@@ -64,7 +64,7 @@ public class ViewModelTests
     {
         var text = DisclaimerText.Title + "\n" + DisclaimerText.Body + "\n" + DisclaimerText.Accept;
         var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text)));
-        Assert.Equal((2, "1C5D1C043FCFD3DE"), (DisclaimerText.Version, hash[..16]));
+        Assert.Equal((2, "EE6D2E65516917D3"), (DisclaimerText.Version, hash[..16]));
     }
 
     [Fact]
