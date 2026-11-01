@@ -5,6 +5,7 @@ What it does
   Removes the "modded" tag from Cyberpunk 2077 saves you've already made: the flag behind the modded
   icon/warning on PC and the broken-trophy icon on consoles (Cross Progression). Companion to the
   No Modded Save Tag plugin, which stops new saves from being tagged.
+  It can also rename, star and delete saves (deleted saves go to its trash), and restore them from backups.
 
 Requirements
   Windows 10 or 11, 64-bit. Nothing else to install: .NET and everything the app needs is inside the exe.
@@ -26,9 +27,9 @@ What the dots mean
   grey     Checking     Shown briefly at startup while the app reads each save.
   "Tagged" (the selection shortcut and the counts) means red + orange.
 
-Every save is backed up before it's changed, and can be restored from its panel. The app keeps its files in
+Saves are backed up before they're cleaned or restored, and can be restored from their panel. The app keeps its files in
   %LOCALAPPDATA%\Cyberpunk 2077 - NMST Modded Save Cleaner\
-    Backups\   full copies taken before every change (never deleted automatically)
+    Backups\   full copies taken before cleaning or restoring (never deleted automatically)
     Logs\      everything the app did
     settings.json   music mute/volume, a saves folder you picked, the terms you accepted
     saves.json      starred saves and rename history (nothing is written into the saves)

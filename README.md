@@ -60,7 +60,7 @@ The app keeps its own files in `%LOCALAPPDATA%\Cyberpunk 2077 - NMST Modded Save
 
 | | |
 | --- | --- |
-| `Backups\<save>\<date-time>\` | full copies of saves taken before every change |
+| `Backups\<save>\<date-time>\` | full copies of saves taken before cleaning or restoring |
 | `Logs\ModdedSaveCleaner.log` | everything the app did |
 | `settings.json` | music mute and volume, a saves folder you picked, the terms version you accepted |
 | `saves.json` | starred saves and rename history, keyed by playthrough + in-game save time |
