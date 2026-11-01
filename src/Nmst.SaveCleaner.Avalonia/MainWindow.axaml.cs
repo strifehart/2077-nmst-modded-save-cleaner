@@ -60,6 +60,12 @@ public partial class MainWindow : Window
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (Intro.IsVisible) { SkipIntro(); e.Handled = true; return; }
+        if (e.Key == Key.Escape && DataContext is MainViewModel { Review: { } review } && !DialogLayer.IsVisible)
+        {
+            review.CancelCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.Escape && DataContext is MainViewModel { IsMusicPanelOpen: true } open && !DialogLayer.IsVisible)
         {
             open.IsMusicPanelOpen = false;

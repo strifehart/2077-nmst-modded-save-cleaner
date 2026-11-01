@@ -44,7 +44,8 @@ try
     if (vm.Focused is { } f)
     {
         var bm = new BackupManager(backupRoot, new ActivityLog(null));
-        bm.Create(f.Info, "Before clean");
+        var bc = bm.Create(f.Info, "Before clean");
+        File.AppendAllText(Path.Combine(bc.FolderPath, SaveInfo.MetadataFile), " ");   // differ, so the next one isn't a reused duplicate
         Thread.Sleep(20);
         bm.Create(f.Info, "Manual");
         // a backup taken from a different save, filed under this one, so the card shows its differences
@@ -92,6 +93,44 @@ try
     Console.WriteLine("Esc closes it: " + !vm.IsMusicPanelOpen);
     vm.IsMusicPanelOpen = false;
     Pump(); Thread.Sleep(400);
+
+    // restore review: three saves get a "Before clean" backup (nudged so it differs from the save), the first also a
+    // newer manual one, the fourth only a manual one: a row to check, ready saves and a skipped one. Temp folder only.
+    var picks = vm.Rows.OfType<SaveItemViewModel>().Where(s => s.IsReadable).Take(4).ToList();
+    var bm2 = new BackupManager(backupRoot, new ActivityLog(null));
+    var touched = new List<BatchSave>();
+    foreach (var p in picks.Take(3))
+    {
+        var b = bm2.Create(p.Info, "Before clean", "snap-batch");
+        File.AppendAllText(Path.Combine(b.FolderPath, SaveInfo.MetadataFile), " ");
+        touched.Add(BatchLog.Snapshot(p.Info.FolderPath, b.Id));
+        Thread.Sleep(5);
+    }
+    bm2.Create(picks[0].Info, "Manual");
+    bm2.Create(picks[3].Info, "Manual");
+    var pickNames = picks.Select(p => p.Name).ToHashSet();
+    Run(vm.ReloadCommand.ExecuteAsync(null));   // so the list's backup counts include the ones just made
+    WaitFor(() => !vm.StatusLine.Contains("checking"), 60);
+    vm.ExpandAllCommand.Execute(null);
+    vm.SelectNoneCommand.Execute(null);
+    foreach (var p in vm.Rows.OfType<SaveItemViewModel>().Where(s => pickNames.Contains(s.Name))) p.IsChecked = true;
+    Pump();
+    var review = vm.RestoreCheckedCommand.ExecuteAsync(null);
+    WaitFor(() => vm.Review is not null, 30);
+    Shot("11_restore_review");
+    vm.Review?.CancelCommand.Execute(null);
+    Run(review);
+
+    // undo: the same three as a recorded clean batch, the second "saved over by the game" since
+    touched[1] = touched[1] with { SavLength = touched[1].SavLength + 1 };
+    new BatchLog(Path.Combine(backupRoot, "batches.json")).Add(new BatchRecord("snap-batch", BatchKind.Clean, DateTime.UtcNow, vm.SavesFolder, touched));
+    Run(vm.ReloadCommand.ExecuteAsync(null));
+    WaitFor(() => !vm.StatusLine.Contains("checking"), 60);
+    var undo = vm.UndoLastBatchCommand.ExecuteAsync(null);
+    WaitFor(() => vm.Review is not null, 30);
+    Shot("12_undo_review");
+    vm.Review?.CancelCommand.Execute(null);
+    Run(undo);
 
     var footer = w.GetLogicalDescendants().OfType<Border>().First(b => ToolTip.GetTip(b) is ItemsControl);
     ToolTip.SetIsOpen(footer, true);

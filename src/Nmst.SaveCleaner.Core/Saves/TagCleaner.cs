@@ -6,7 +6,8 @@ namespace Nmst.SaveCleaner.Core.Saves;
 
 public enum CleanOutcome { Cleaned, Skipped, Failed }
 
-public sealed record CleanResult(string SaveName, CleanOutcome Outcome, string Message);
+/// <summary>BackupId is the "Before clean" backup made for a cleaned save.</summary>
+public sealed record CleanResult(string SaveName, CleanOutcome Outcome, string Message, string? BackupId = null);
 
 /// <summary>
 /// Clears the modded tag in place: always backs the save up first, writes through temp files, re-reads the result
@@ -17,7 +18,7 @@ public sealed partial class TagCleaner(BackupManager backups, ActivityLog log)
     [GeneratedRegex(@"""isModded""\s*:\s*true")]
     private static partial Regex IsModdedTrue();
 
-    public CleanResult Clean(string saveFolder)
+    public CleanResult Clean(string saveFolder, string? batchId = null)
     {
         var name = Path.GetFileName(saveFolder);
         try
@@ -34,7 +35,7 @@ public sealed partial class TagCleaner(BackupManager backups, ActivityLog log)
                 return new CleanResult(name, CleanOutcome.Skipped, "already clean");
             }
 
-            var backup = backups.Create(save, "Before clean");
+            var backup = backups.Create(save, "Before clean", batchId);
             try
             {
                 // the edits replace files through .tmp copies; put the original dates back afterwards
@@ -58,7 +59,7 @@ public sealed partial class TagCleaner(BackupManager backups, ActivityLog log)
             }
 
             log.Ok($"{name}: {(sticky == true ? "ModdingSystem 01 → 00" : "no sticky flag")}{(json ? ", isModded true → false" : "")}, verified");
-            return new CleanResult(name, CleanOutcome.Cleaned, "cleaned");
+            return new CleanResult(name, CleanOutcome.Cleaned, "cleaned", backup.Id);
         }
         catch (Exception e)
         {

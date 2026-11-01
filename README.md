@@ -16,6 +16,9 @@ The plugin stops *new* saves from being tagged. This app cleans the ones that al
 - **Backs up every save before changing it**, and checks the result after writing. If the check fails, it puts the
   backup back by itself.
 - Restores any backup, comparing several side by side. The current save is backed up before a restore, too.
+- Restores many saves at once: pick a rule (undo cleaning, latest manual backup, newest backup), check the saves
+  that have more than one restore point, then restore
+- Undoes the last clean or restore in one go, leaving out saves the game has written to since
 - Refuses to change anything while the game is running
 
 ## Requirements

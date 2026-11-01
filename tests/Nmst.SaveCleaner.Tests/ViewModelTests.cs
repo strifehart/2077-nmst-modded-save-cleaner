@@ -7,7 +7,7 @@ namespace Nmst.SaveCleaner.Tests;
 
 public class ViewModelTests
 {
-    private sealed class FakePlatform : IPlatformServices
+    internal sealed class FakePlatform : IPlatformServices
     {
         public List<string> Confirms { get; } = [];
         public Task<bool> ConfirmAsync(string title, string message, string confirmText) { Confirms.Add(message); return Task.FromResult(true); }
@@ -20,7 +20,7 @@ public class ViewModelTests
         public void Quit() { }
     }
 
-    private static async Task WaitForFlags(MainViewModel vm)
+    internal static async Task WaitForFlags(MainViewModel vm)
     {
         var end = DateTime.Now.AddSeconds(30);
         while (vm.StatusLine.Contains("checking") || vm.StatusLine.Length == 0)

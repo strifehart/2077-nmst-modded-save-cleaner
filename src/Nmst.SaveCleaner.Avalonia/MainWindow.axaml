@@ -98,10 +98,13 @@
                        TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding SavesFolder}" />
           </DockPanel>
           <!-- result of the last action: fades out after a few seconds; errors stay red until clicked -->
-          <Button Grid.Column="2" Classes="result" Classes.error="{Binding ResultIsError}" Content="{Binding ResultText}"
-                  Opacity="{Binding ResultVisible, Converter={StaticResource BoolToOpacity}}" IsHitTestVisible="{Binding ResultVisible}"
-                  Command="{Binding DismissResultCommand}" ToolTip.Tip="Click to dismiss · the Log has the details"
-                  VerticalAlignment="Center" Margin="12,0" IsVisible="{Binding !IsBusy}" />
+          <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0" IsVisible="{Binding !IsBusy}"
+                      Opacity="{Binding ResultVisible, Converter={StaticResource BoolToOpacity}}" IsHitTestVisible="{Binding ResultVisible}">
+            <Button Classes="result" Classes.error="{Binding ResultIsError}" Content="{Binding ResultText}"
+                    Command="{Binding DismissResultCommand}" ToolTip.Tip="Click to dismiss · the Log has the details" VerticalAlignment="Center" />
+            <Button Classes="link" Content="Undo" Margin="12,0,0,0" VerticalAlignment="Center" IsVisible="{Binding ResultCanUndo}"
+                    Command="{Binding UndoLastBatchCommand}" ToolTip.Tip="Review, then put these saves back as they were" />
+          </StackPanel>
           <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="12" IsVisible="{Binding IsBusy}" VerticalAlignment="Center">
             <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource PinkSoft}" FontSize="13" VerticalAlignment="Center" />
             <Border Width="240" Height="8" CornerRadius="4" ClipToBounds="True" Background="{StaticResource CardHi}" VerticalAlignment="Center">
@@ -410,9 +413,14 @@
                 </Grid>
               </Border>
 
-              <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+              <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,6,0,0">
                 <TextBlock Classes="h2" Text="BACKUPS" VerticalAlignment="Center" />
-                <Button Grid.Column="1" Content="Back up now" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).BackupCheckedCommand}" />
+                <Button Grid.Column="1" Classes="link" Margin="0,0,16,0" VerticalAlignment="Center"
+                        Content="{Binding $parent[Window].((vm:MainViewModel)DataContext).UndoLastBatchText}"
+                        IsVisible="{Binding $parent[Window].((vm:MainViewModel)DataContext).CanUndoLastBatch}"
+                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).UndoLastBatchCommand}"
+                        ToolTip.Tip="Review, then put the saves from the last clean or restore back as they were" />
+                <Button Grid.Column="2" Content="Back up now" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).BackupCheckedCommand}" />
               </Grid>
               <TextBlock Classes="faint" IsVisible="{Binding !HasBackups}" TextWrapping="Wrap"
                          Text="No backups of this save yet. The app makes one automatically before every change." />
@@ -504,6 +512,26 @@
                     <TextBlock Classes="muted" TextWrapping="Wrap" Text="Make a manual backup of every selected save. Restore from a save's own panel." />
                   </StackPanel>
                   <Button Grid.Column="1" Content="Run" VerticalAlignment="Center" Command="{Binding BackupCheckedCommand}" />
+                </Grid>
+              </Border>
+              <Border Classes="card">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel>
+                    <TextBlock Text="Restore" FontWeight="SemiBold" FontSize="17" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap">
+                      <Run Text="{Binding BatchWithBackups}" /><Run Text=" of the selected saves have backups. Choose a rule (like undo cleaning), check the saves that have more than one restore point, then restore. Each save is backed up before it's replaced." />
+                    </TextBlock>
+                  </StackPanel>
+                  <Button Grid.Column="1" Content="Review…" VerticalAlignment="Center" Command="{Binding RestoreCheckedCommand}" />
+                </Grid>
+              </Border>
+              <Border Classes="card" IsVisible="{Binding CanUndoLastBatch}">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel>
+                    <TextBlock Text="Undo last batch" FontWeight="SemiBold" FontSize="17" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding UndoLastBatchText}" />
+                  </StackPanel>
+                  <Button Grid.Column="1" Content="Review…" VerticalAlignment="Center" Command="{Binding UndoLastBatchCommand}" />
                 </Grid>
               </Border>
 
@@ -614,6 +642,52 @@
             <Button Classes="primary" Content="Continue" Command="{Binding AcceptDisclaimerCommand}" />
           </StackPanel>
         </StackPanel>
+      </Border>
+    </Border>
+
+    <!-- bulk restore / undo review: rule, the saves that have a real choice, the rest collapsed. Esc cancels -->
+    <Border IsVisible="{Binding IsReviewOpen}" Background="#cc040308">
+      <Border Classes="card" Width="820" Margin="0,48" HorizontalAlignment="Center" VerticalAlignment="Center"
+              BorderBrush="{StaticResource Pink}" Padding="26,22" Effect="drop-shadow(0 0 24 #66eb107e)" DataContext="{Binding Review}">
+        <DockPanel x:DataType="vm:RestoreReviewViewModel">
+          <StackPanel DockPanel.Dock="Top" Spacing="12" Margin="0,0,0,14">
+            <TextBlock Classes="h1" FontSize="17" Text="{Binding Heading}" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding Intro}" />
+            <StackPanel Spacing="6" IsVisible="{Binding HasRule}">
+              <TextBlock Classes="label" Text="Restore each save to" />
+              <ComboBox ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule}" HorizontalAlignment="Stretch" />
+            </StackPanel>
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Bottom" Spacing="12" Margin="0,14,0,0">
+            <TextBlock Classes="faint" TextWrapping="Wrap" Text="{Binding Summary}" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+              <Button Content="Cancel" Command="{Binding CancelCommand}" />
+              <Button Classes="primary" Content="{Binding ConfirmText}" Command="{Binding ConfirmCommand}" />
+            </StackPanel>
+          </StackPanel>
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="14" Margin="0,0,14,0">
+              <StackPanel Spacing="6" IsVisible="{Binding HasNeedsLook}">
+                <TextBlock Classes="h2" Text="CHECK THESE" />
+                <ItemsControl ItemsSource="{Binding NeedsLook}" ItemTemplate="{StaticResource RestoreRowTemplate}" />
+              </StackPanel>
+              <Expander IsVisible="{Binding HasReady}" Header="{Binding ReadyHeader}" HorizontalAlignment="Stretch">
+                <ItemsControl ItemsSource="{Binding Ready}" ItemTemplate="{StaticResource RestoreRowTemplate}" />
+              </Expander>
+              <Expander IsVisible="{Binding HasSkipped}" Header="{Binding SkippedHeader}" HorizontalAlignment="Stretch">
+                <ItemsControl ItemsSource="{Binding Skipped}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:RestoreSkip">
+                      <TextBlock Margin="0,3" TextWrapping="Wrap">
+                        <Run Text="{Binding Name}" FontWeight="SemiBold" /><Run Text="  " /><Run Text="{Binding Reason}" Foreground="{StaticResource Faint}" />
+                      </TextBlock>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Expander>
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
       </Border>
     </Border>
 

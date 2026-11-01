@@ -20,6 +20,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly GameNames _names = GameNames.LoadEmbedded();
     private readonly BackupManager _backups;
     private readonly TagCleaner _cleaner;
+    private readonly BatchLog _batches;
     private List<SaveItemViewModel> _all = [];
     private List<PlaythroughGroupViewModel> _groups = [];
     private CancellationTokenSource? _flagScan;
@@ -48,6 +49,7 @@ public sealed partial class MainViewModel : ObservableObject
         });
         _backups = new BackupManager(backupsRoot, Log);
         _cleaner = new TagCleaner(_backups, Log);
+        _batches = new BatchLog(Path.Combine(backupsRoot, "batches.json"));
 
         // a folder picked with "Change folder" wins over the detected one, as long as it still exists
         _defaultSavesFolder = savesFolder;
@@ -142,7 +144,8 @@ public sealed partial class MainViewModel : ObservableObject
             Focused = _groups.FirstOrDefault()?.Items.FirstOrDefault();
             UpdateBatch();
             UpdateStatus();
-            Log.Info($"Scanned {SavesFolder}: {_all.Count} saves in {_groups.Count(g => !g.Playthrough.IsUngrouped)} playthroughs");
+            RefreshLastBatch();
+            Log.Info($"Scanned {SavesFolder}:{_all.Count} saves in {_groups.Count(g => !g.Playthrough.IsUngrouped)} playthroughs");
             StartFlagScan();
         }
         catch (Exception e)
@@ -309,6 +312,7 @@ public sealed partial class MainViewModel : ObservableObject
         BatchWithBackups = c.Count(i => i.HasBackups);
         BatchSize = Format.Size(c.Where(i => i.IsTagged).Sum(i => i.Info.SizeBytes));
         CleanCheckedCommand.NotifyCanExecuteChanged();
+        RestoreCheckedCommand.NotifyCanExecuteChanged();
     }
 
     private void SetChecked(Func<SaveItemViewModel, bool> pick)
@@ -442,6 +446,8 @@ public sealed partial class MainViewModel : ObservableObject
 
         BeginBusy("Cleaning…");
         int ok = 0, skipped = skip, failed = 0;
+        var batchId = BatchLog.NewId();
+        var touched = new List<BatchSave>();
         try
         {
             for (int n = 0; n < todo.Count; n++)
@@ -453,7 +459,8 @@ public sealed partial class MainViewModel : ObservableObject
                 {
                     var (result, info, state, sticky) = await Task.Run(() =>
                     {
-                        var r = _cleaner.Clean(item.Info.FolderPath);
+                        var r = _cleaner.Clean(item.Info.FolderPath, batchId);
+                        if (r.BackupId is { } id) lock (touched) touched.Add(BatchLog.Snapshot(item.Info.FolderPath, id));
                         var i = SaveScanner.Read(item.Info.FolderPath);
                         var (s, st) = ReadState(i);
                         return (r, i, s, st);
@@ -470,8 +477,9 @@ public sealed partial class MainViewModel : ObservableObject
             }
         }
         finally { await EndBusyAsync(); }
+        bool undoable = RecordBatch(batchId, BatchKind.Clean, touched);
         Log.Done($"{ok} cleaned, {skipped} skipped, {failed} failed");
-        ShowResult(failed > 0 ? $"{failed} failed, {ok} cleaned · see the log" : $"{ok} cleaned" + (skipped > 0 ? $", {skipped} skipped" : ""), failed > 0);
+        ShowResult(failed > 0 ? $"{failed} failed, {ok} cleaned · see the log" : $"{ok} cleaned" + (skipped > 0 ? $", {skipped} skipped" : ""), failed > 0, undoable);
         if (Focused is not null && todo.Contains(Focused)) LoadFocusedBackups();
         UpdateBatch(); UpdateStatus();
     }
@@ -482,6 +490,7 @@ public sealed partial class MainViewModel : ObservableObject
         var targets = (IsBatch ? _all.Where(i => i.IsChecked) : Focused is null ? [] : [Focused]).Where(i => i.IsReadable).ToList();
         if (targets.Count == 0 || IsBusy) return;
         BeginBusy("Backing up…");
+        int made = 0, already = 0, failed = 0;
         try
         {
             for (int n = 0; n < targets.Count; n++)
@@ -489,14 +498,23 @@ public sealed partial class MainViewModel : ObservableObject
                 var item = targets[n];
                 BusyText = $"Backing up {n + 1}/{targets.Count} · {item.Name}";
                 Progress = (double)n / targets.Count;
-                try { await Task.Run(() => _backups.Create(item.Info, "Manual")); }
-                catch (Exception e) { Log.Error($"{item.Name}: backup failed · {e.Message}"); ShowResult($"{item.Name}: backup failed · see the log", true); }
+                try
+                {
+                    var b = await Task.Run(() => _backups.Create(item.Info, "Manual"));
+                    if (b.WasExisting) already++; else made++;
+                }
+                catch (Exception e) { failed++; Log.Error($"{item.Name}: backup failed · {e.Message}"); }
                 item.BackupCount = _backups.List(item.Name).Count;
             }
         }
         finally { await EndBusyAsync(); }
-        Log.Done($"Backed up {targets.Count} save{(targets.Count == 1 ? "" : "s")}");
-        ShowResult($"Backed up {targets.Count} save{(targets.Count == 1 ? "" : "s")}", false);
+        // an identical backup already there counts as backed up: nothing new was needed
+        string text = failed > 0 ? $"{failed} backup{(failed == 1 ? "" : "s")} failed · see the log"
+            : already == 0 ? $"Backed up {made} save{(made == 1 ? "" : "s")}"
+            : made == 0 ? (already == 1 ? "Already backed up: an identical backup exists" : $"Already backed up: all {already} have an identical backup")
+            : $"Backed up {made} save{(made == 1 ? "" : "s")} · {already} already had an identical backup";
+        Log.Done(text);
+        ShowResult(text, failed > 0);
         LoadFocusedBackups(); UpdateBatch();
     }
 
@@ -513,18 +531,21 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         BeginBusy("Restoring " + Focused.Name);
         var item = Focused;
+        var batchId = BatchLog.NewId();
+        var touched = new List<BatchSave>();
         try
         {
             var (info, state, sticky) = await Task.Run(() =>
             {
-                _backups.Restore(backup.Backup, SavesFolder);
+                var before = _backups.Restore(backup.Backup, SavesFolder, batchId: batchId);
+                if (before is not null) touched.Add(BatchLog.Snapshot(item.Info.FolderPath, before.Id));
                 var i = SaveScanner.Read(item.Info.FolderPath);
                 var (s, st) = ReadState(i);
                 return (i, s, st);
             });
             item.Info = info; item.Sticky = sticky; item.State = state;
             Log.Done($"{item.Name} restored · now {Format.State(state).ToLowerInvariant()}");
-            ShowResult($"{item.Name} restored", false);
+            ShowResult($"{item.Name} restored", false, RecordBatch(batchId, BatchKind.Restore, touched));
         }
         catch (Exception e)
         {
@@ -550,6 +571,136 @@ public sealed partial class MainViewModel : ObservableObject
         finally { await EndBusyAsync(); }
         ShowResult(ok ? "Backup deleted" : "Couldn't delete the backup · see the log", !ok);
         LoadFocusedBackups();
+    }
+
+    // ---------- bulk restore + undo last batch (both reviewed in RestoreReview before anything changes) ----------
+
+    /// <summary>The open review; null when none is shown.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsReviewOpen))]
+    private RestoreReviewViewModel? _review;
+    public bool IsReviewOpen => Review is not null;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanUndoLastBatch), nameof(UndoLastBatchText))]
+    [NotifyCanExecuteChangedFor(nameof(UndoLastBatchCommand))]
+    private BatchRecord? _lastBatch;
+    public bool CanUndoLastBatch => LastBatch is not null;
+    public string UndoLastBatchText => LastBatch is not { } b ? "" :
+        $"Undo the last {(b.Kind == BatchKind.Clean ? "clean" : "restore")} · {b.Saves.Count} save{(b.Saves.Count == 1 ? "" : "s")} · {Format.DateTime(b.TimeUtc.ToLocalTime())}";
+
+    private void RefreshLastBatch() => LastBatch = _batches.Last(SavesFolder);
+
+    /// <summary>Remembers what a clean/restore touched so it can be undone; true when there's something to undo.</summary>
+    private bool RecordBatch(string id, BatchKind kind, List<BatchSave> touched)
+    {
+        if (touched.Count == 0) return false;
+        try { _batches.Add(new BatchRecord(id, kind, DateTime.UtcNow, SavesFolder, touched)); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Log.Warn("Couldn't record this batch for Undo · " + e.Message);
+            return false;
+        }
+        RefreshLastBatch();
+        return true;
+    }
+
+    private IReadOnlyList<RestoreOption> OptionsFor(RestorePlanEntry e)
+    {
+        var folder = Path.Combine(SavesFolder, e.SaveFolderName);
+        return [new RestoreOption("Don't restore", null),
+            .. e.Candidates.Select(b => new RestoreOption(
+                $"{b.Reason} · {Format.DateTime(b.Created)} · {Format.State(b.State)}" + (b.IsFromOtherFolder(folder) ? " · from another saves folder" : ""), b))];
+    }
+
+    private bool CanRestoreChecked() => BatchWithBackups > 0;
+
+    [RelayCommand(CanExecute = nameof(CanRestoreChecked))]
+    private async Task RestoreCheckedAsync()
+    {
+        var targets = _all.Where(i => i.IsChecked && i.HasBackups).ToList();
+        if (targets.Count == 0 || IsBusy || IsReviewOpen) return;
+        // read every save's backups once; switching the rule only re-picks from these
+        var lists = await Task.Run(() => targets.ToDictionary(t => t.Info.FolderPath, t => _backups.List(t.Name)));
+        IReadOnlyList<RestorePlanEntry> Plan(RestoreRule rule) => lists.Select(kv => RestorePlanner.Plan(kv.Key, kv.Value, rule)).ToList();
+        var plan = await Task.Run(() => Plan(RestoreRule.UndoCleaning));
+        int without = CheckedCount - targets.Count;
+        await ReviewAndRestoreAsync(new RestoreReviewViewModel(
+            "Restore selected saves",
+            $"Pick which restore point the {targets.Count} selected save{(targets.Count == 1 ? "" : "s")} with backups go back to."
+            + (without > 0 ? $" {without} selected save{(without == 1 ? " has" : "s have")} no backups and {(without == 1 ? "is" : "are")} left out." : ""),
+            plan, OptionsFor, Plan));
+    }
+
+    [RelayCommand(CanExecute = nameof(CanUndoLastBatch))]
+    private async Task UndoLastBatchAsync()
+    {
+        if (LastBatch is not { } batch || IsBusy || IsReviewOpen) return;
+        DismissResult();
+        var plan = await Task.Run(() => RestorePlanner.PlanUndo(batch, _backups, SavesFolder));
+        string what = batch.Kind == BatchKind.Clean ? "clean" : "restore";
+        await ReviewAndRestoreAsync(new RestoreReviewViewModel(
+            "Undo the last " + what,
+            $"Puts the {batch.Saves.Count} save{(batch.Saves.Count == 1 ? "" : "s")} from the {what} on {Format.DateTime(batch.TimeUtc.ToLocalTime())} back the way "
+            + "they were before it. Saves the game has written to since are left out unless you pick them.",
+            plan, OptionsFor, null));
+    }
+
+    private async Task ReviewAndRestoreAsync(RestoreReviewViewModel review)
+    {
+        Review = review;
+        bool go = await review.Result;
+        Review = null;
+        if (!go) return;
+        var chosen = review.Chosen;
+        if (chosen.Count == 0 || !await CanWriteAsync()) return;
+
+        Log.Info($"{review.Title}: {chosen.Count} save{(chosen.Count == 1 ? "" : "s")}");
+        BeginBusy("Restoring…");
+        int ok = 0, failed = 0;
+        bool recreated = false;
+        var batchId = BatchLog.NewId();
+        var touched = new List<BatchSave>();
+        try
+        {
+            for (int n = 0; n < chosen.Count; n++)
+            {
+                var (name, backup) = chosen[n];
+                BusyText = $"Restoring {n + 1}/{chosen.Count} · {name}";
+                Progress = (double)n / chosen.Count;
+                var folder = Path.Combine(SavesFolder, name);
+                try
+                {
+                    var (info, state, sticky) = await Task.Run(() =>
+                    {
+                        var before = _backups.Restore(backup, SavesFolder, batchId: batchId);
+                        if (before is not null) touched.Add(BatchLog.Snapshot(folder, before.Id));
+                        var i = SaveScanner.Read(folder);
+                        var (s, st) = ReadState(i);
+                        return (i, s, st);
+                    });
+                    if (_all.FirstOrDefault(i => i.Name == name) is { } item)
+                    {
+                        item.Info = info; item.Sticky = sticky; item.State = state;
+                        item.BackupCount = _backups.List(name).Count;
+                    }
+                    else recreated = true;   // the save had been deleted: it shows up after a reload
+                    Log.Ok($"{name}: restored · now {Format.State(state).ToLowerInvariant()}");
+                    ok++;
+                }
+                catch (Exception e)
+                {
+                    failed++;
+                    Log.Error($"{name}: restore failed · {e.Message}");
+                }
+            }
+        }
+        finally { await EndBusyAsync(); }
+        bool undoable = RecordBatch(batchId, BatchKind.Restore, touched);
+        Log.Done($"{ok} restored, {failed} failed");
+        ShowResult(failed > 0 ? $"{failed} failed, {ok} restored · see the log" : $"{ok} restored", failed > 0, undoable);
+        if (recreated) await ReloadAsync();
+        LoadFocusedBackups(); UpdateBatch(); UpdateStatus();
     }
 
     /// <summary>
@@ -584,12 +735,15 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _resultText = "";
     [ObservableProperty] private bool _resultIsError;
     [ObservableProperty] private bool _resultVisible;
+    /// <summary>The result is from a clean/restore that the "Undo" next to it can take back.</summary>
+    [ObservableProperty] private bool _resultCanUndo;
     private int _resultToken;
 
-    private void ShowResult(string text, bool error)
+    private void ShowResult(string text, bool error, bool canUndo = false)
     {
         ResultText = text;
         ResultIsError = error;
+        ResultCanUndo = canUndo && LastBatch is not null;
         ResultVisible = true;
         int token = ++_resultToken;
         if (!error) _ = HideResultLater(token);
@@ -597,8 +751,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     private async Task HideResultLater(int token)
     {
-        await Task.Delay(6000);
-        OnUi(() => { if (token == _resultToken) ResultVisible = false; });
+        await Task.Delay(ResultCanUndo ? 12000 : 6000);   // longer when there's an Undo to click
+        OnUi(() => { if (token == _resultToken) { ResultVisible = false; ResultCanUndo = false; } });
     }
 
     [RelayCommand]
@@ -606,6 +760,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         _resultToken++;
         ResultVisible = false;
+        ResultCanUndo = false;
     }
 
     // ---------- music (mute + volume remembered in settings.json) ----------

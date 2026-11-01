@@ -2,7 +2,8 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Nmst.SaveCleaner.Avalonia"
-        xmlns:log="clr-namespace:Nmst.SaveCleaner.Core.Logging;assembly=Nmst.SaveCleaner.Core">
+        xmlns:log="clr-namespace:Nmst.SaveCleaner.Core.Logging;assembly=Nmst.SaveCleaner.Core"
+        xmlns:vm="clr-namespace:Nmst.SaveCleaner.ViewModels;assembly=Nmst.SaveCleaner.ViewModels">
   <Styles.Resources>
     <FontFamily x:Key="BodyFont">avares://NMSTSaveCleaner/Assets/Fonts#Rajdhani</FontFamily>
     <FontFamily x:Key="HeadFont">avares://NMSTSaveCleaner/Assets/Fonts#Orbitron</FontFamily>
@@ -46,6 +47,16 @@
                      HorizontalAlignment="Center" Foreground="{Binding Level, Converter={StaticResource LevelBrush}}" />
         </Border>
         <SelectableTextBlock Grid.Column="2" Text="{Binding Message}" FontSize="14" TextWrapping="Wrap" VerticalAlignment="Center" />
+      </Grid>
+    </DataTemplate>
+    <!-- one save in the restore review: name (+ why it's listed) and the restore point it gets -->
+    <DataTemplate x:Key="RestoreRowTemplate" x:DataType="vm:RestoreRowViewModel">
+      <Grid ColumnDefinitions="*,380" Margin="0,4">
+        <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Opacity="{Binding NameOpacity}" />
+          <TextBlock Text="{Binding Note}" IsVisible="{Binding HasNote}" Foreground="{StaticResource Amber}" FontSize="13" TextWrapping="Wrap" />
+        </StackPanel>
+        <ComboBox Grid.Column="1" ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
       </Grid>
     </DataTemplate>
     <LinearGradientBrush x:Key="NeonGradient" StartPoint="0%,0%" EndPoint="100%,0%">
