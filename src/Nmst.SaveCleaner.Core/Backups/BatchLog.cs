@@ -43,6 +43,25 @@ public sealed class BatchLog(string path)
         File.Move(tmp, path, true);
     }
 
+    /// <summary>Points the recorded batches at a save's new name after it was renamed.</summary>
+    public void RenameSave(string savesFolder, string oldName, string newName)
+    {
+        var list = All().ToList();
+        bool changed = false;
+        for (int i = 0; i < list.Count; i++)
+        {
+            var b = list[i];
+            if (!string.Equals(Norm(b.SavesFolder), Norm(savesFolder), StringComparison.OrdinalIgnoreCase)) continue;
+            if (!b.Saves.Any(s => s.SaveFolderName == oldName)) continue;
+            list[i] = b with { Saves = b.Saves.Select(s => s.SaveFolderName == oldName ? s with { SaveFolderName = newName } : s).ToList() };
+            changed = true;
+        }
+        if (!changed) return;
+        var tmp = path + ".tmp";
+        File.WriteAllText(tmp, JsonSerializer.Serialize(list, Json));
+        File.Move(tmp, path, true);
+    }
+
     /// <summary>Size + modified time of a save's two data files, as a batch leaves them.</summary>
     public static BatchSave Snapshot(string saveFolder, string backupId)
     {

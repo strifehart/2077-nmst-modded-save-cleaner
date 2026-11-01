@@ -237,6 +237,12 @@
                 <Button Classes="link" Content="Tagged" Command="{Binding SelectTaggedCommand}" />
                 <Button Classes="link" Content="Invert" Command="{Binding InvertSelectionCommand}" />
               </WrapPanel>
+              <!-- a filter (what the list shows), separate from the selection links above (what's ticked) -->
+              <StackPanel Orientation="Horizontal">
+                <Button Classes="seg" Classes.on="{Binding !ShowStarredOnly}" Content="Show all" Command="{Binding ShowAllCommand}" />
+                <Button Classes="seg starFilter" Classes.on="{Binding ShowStarredOnly}" Content="{Binding StarredLabel}" Command="{Binding ShowStarredCommand}"
+                        ToolTip.Tip="Only show starred saves" />
+              </StackPanel>
               <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Classes="faint" Text="{Binding CheckedCount, StringFormat='{}{0} selected'}" VerticalAlignment="Center" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -246,7 +252,7 @@
               </Grid>
             </StackPanel>
             <TextBlock DockPanel.Dock="Top" IsVisible="{Binding NoMatches}" Classes="muted" Margin="14,10" TextWrapping="Wrap"
-                       Text="No saves, quests or places match your search." />
+                       Text="{Binding NoMatchesText}" />
             <ScrollViewer HorizontalScrollBarVisibility="Disabled">
               <ItemsControl ItemsSource="{Binding Rows}">
                 <ItemsControl.DataTemplates>
@@ -263,6 +269,8 @@
                             <StackPanel Orientation="Horizontal" Spacing="8">
                               <TextBlock Text="{Binding Title}" FontFamily="{StaticResource HeadFont}" FontSize="13" Foreground="{StaticResource PinkSoft}" />
                               <TextBlock Text="{Binding CountLabel}" Classes="faint" VerticalAlignment="Center" />
+                              <TextBlock Text="{Binding StarCount, StringFormat='★ {0}'}" Foreground="{StaticResource Amber}" FontSize="13"
+                                         VerticalAlignment="Center" IsVisible="{Binding HasStars}" ToolTip.Tip="Starred saves in this playthrough" />
                             </StackPanel>
                             <TextBlock Text="{Binding StatsLine}" Classes="faint" />
                             <TextBlock Text="{Binding LatestLine}" Classes="faint" />
@@ -286,13 +294,22 @@
                         <Grid ColumnDefinitions="Auto,*" Margin="24,6,26,6">
                           <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Top" MinWidth="0" Margin="0,-4,4,0" />
                           <StackPanel Grid.Column="1" Spacing="0">
-                            <Grid ColumnDefinitions="*,Auto,Auto">
+                            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
                               <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                              <TextBlock Grid.Column="1" Text="⟲" IsVisible="{Binding HasBackups}" Foreground="{StaticResource Muted}"
+                              <!-- ★ when starred; on other rows a faint ☆ shows on hover -->
+                              <Button Grid.Column="1" Classes="star" Classes.on="{Binding IsStarred}" ToolTip.Tip="{Binding StarTip}"
+                                      Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).ToggleStarCommand}" CommandParameter="{Binding}">
+                                <Panel>
+                                  <TextBlock Text="★" IsVisible="{Binding IsStarred}" />
+                                  <TextBlock Text="☆" IsVisible="{Binding !IsStarred}" />
+                                </Panel>
+                              </Button>
+                              <TextBlock Grid.Column="2" Text="⟲" IsVisible="{Binding HasBackups}" Foreground="{StaticResource Muted}"
                                          Margin="0,0,8,0" VerticalAlignment="Center" ToolTip.Tip="Has backups" />
-                              <Ellipse Grid.Column="2" Width="9" Height="9" VerticalAlignment="Center"
+                              <Ellipse Grid.Column="3" Width="9" Height="9" VerticalAlignment="Center"
                                        Fill="{Binding State, Converter={StaticResource StateBrush}}" ToolTip.Tip="{Binding StateLabel}" />
                             </Grid>
+                            <TextBlock Text="{Binding WasLine}" Foreground="{StaticResource Cyan}" FontSize="12" IsVisible="{Binding IsRenamed}" />
                             <TextBlock Text="{Binding ListLine}" Classes="faint" />
                             <TextBlock Text="{Binding TrackedQuest}" Classes="faint" TextTrimming="CharacterEllipsis"
                                        IsVisible="{Binding MatchHint, Converter={x:Static StringConverters.IsNullOrEmpty}}" />
@@ -348,7 +365,21 @@
                   <Border CornerRadius="6" BorderBrush="{StaticResource Purple}" BorderThickness="1" IsHitTestVisible="False" />
                 </Panel>
                 <StackPanel Grid.Column="1" Margin="22,2,0,0" Spacing="8">
-                  <TextBlock Classes="h1" Text="{Binding Name}" />
+                  <StackPanel Orientation="Horizontal" Spacing="12">
+                    <TextBlock Classes="h1" Text="{Binding Name}" />
+                    <Button Classes="star big" Classes.on="{Binding IsStarred}" ToolTip.Tip="{Binding StarTip}" VerticalAlignment="Center"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ToggleStarCommand}" CommandParameter="{Binding}">
+                      <Panel>
+                        <TextBlock Text="★" IsVisible="{Binding IsStarred}" />
+                        <TextBlock Text="☆" IsVisible="{Binding !IsStarred}" />
+                      </Panel>
+                    </Button>
+                  </StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsRenamed}" Margin="0,-6,0,0">
+                    <TextBlock Classes="faint" Text="{Binding RenamedFromLine}" VerticalAlignment="Center" />
+                    <Button Classes="link" Content="Reset name" VerticalAlignment="Center"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).ResetNameCommand}" />
+                  </StackPanel>
                   <TextBlock Classes="muted" Text="{Binding MetaLine}" FontSize="16" />
                   <ItemsControl ItemsSource="{Binding Pills}">
                     <ItemsControl.ItemsPanel>
@@ -364,8 +395,20 @@
                     <Ellipse Width="10" Height="10" Fill="{Binding State, Converter={StaticResource StateBrush}}" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding StateLabel}" FontWeight="SemiBold" />
                   </StackPanel>
-                  <Button Classes="link" Content="Open save folder" HorizontalAlignment="Left"
-                          Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenFocusedFolderCommand}" />
+                  <StackPanel Orientation="Horizontal" Spacing="16">
+                    <Button Classes="link" Content="Rename…" Margin="0"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RenameFocusedCommand}"
+                            ToolTip.Tip="Change the name the game's Load menu shows. Nothing inside the save changes." />
+                    <Button Classes="link" Content="Keep this autosave…" Margin="0" IsVisible="{Binding IsInRotatingSlot}"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).KeepAutosaveCommand}"
+                            ToolTip.Tip="Give it a name of its own so the game can't overwrite it in this slot" />
+                    <Button Classes="link" Content="Open save folder" Margin="0"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenFocusedFolderCommand}" />
+                  </StackPanel>
+                  <Border Classes="hint" IsVisible="{Binding IsInRotatingSlot}" HorizontalAlignment="Left">
+                    <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="{StaticResource Amber}"
+                               Text="The game overwrites this slot with later saves. Use Keep this autosave if you want this one to stay." />
+                  </Border>
                 </StackPanel>
               </Grid>
 
@@ -551,6 +594,18 @@
                   <Button Grid.Column="1" Content="Review…" VerticalAlignment="Center" Command="{Binding RestoreCheckedCommand}" />
                 </Grid>
               </Border>
+              <Border Classes="card">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel>
+                    <TextBlock Text="Star" FontWeight="SemiBold" FontSize="17" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="Star the selected saves so they're easy to find with the Starred filter. Stars live in the app, not in the saves." />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Content="★ Star" Command="{Binding StarCheckedCommand}" />
+                    <Button Content="Unstar" Command="{Binding UnstarCheckedCommand}" />
+                  </StackPanel>
+                </Grid>
+              </Border>
               <Border Classes="card" IsVisible="{Binding CanUndoLastBatch}">
                 <Grid ColumnDefinitions="*,Auto">
                   <StackPanel>
@@ -714,6 +769,35 @@
             </StackPanel>
           </ScrollViewer>
         </DockPanel>
+      </Border>
+    </Border>
+
+    <!-- rename / keep this autosave: the name, checked as you type. Enter renames, Esc cancels -->
+    <Border IsVisible="{Binding IsRenameOpen}" Background="#cc040308">
+      <Border Classes="card" Width="520" HorizontalAlignment="Center" VerticalAlignment="Center"
+              BorderBrush="{StaticResource Pink}" Padding="26,22" Effect="drop-shadow(0 0 24 #66eb107e)" DataContext="{Binding RenameDialog}">
+        <StackPanel Spacing="10" x:DataType="vm:RenameDialogViewModel">
+          <TextBlock Classes="h1" FontSize="17" Text="{Binding Heading}" />
+          <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding Intro}" />
+          <TextBlock Classes="label" Text="Name" Margin="0,6,0,0" />
+          <TextBox x:Name="RenameBox" Text="{Binding Name}" MaxLength="60">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Enter" Command="{Binding ConfirmCommand}" />
+            </TextBox.KeyBindings>
+            <TextBox.InnerRightContent>
+              <TextBlock Text="{Binding Counter}" Classes="faint" VerticalAlignment="Center" Margin="0,0,10,0" />
+            </TextBox.InnerRightContent>
+          </TextBox>
+          <TextBlock Text="✓ Available" Foreground="{StaticResource Green}" FontSize="13" IsVisible="{Binding IsValid}" />
+          <TextBlock Text="{Binding Error}" Foreground="{StaticResource Red}" FontSize="13" TextWrapping="Wrap" IsVisible="{Binding !IsValid}" />
+          <TextBlock Classes="faint" TextWrapping="Wrap" Text="{Binding OriginalNote}"
+                     IsVisible="{Binding OriginalNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBlock Foreground="{StaticResource Amber}" FontSize="13" TextWrapping="Wrap" Text="{Binding CloudNote}" />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,6,0,0">
+            <Button Content="Cancel" Command="{Binding CancelCommand}" />
+            <Button Classes="primary" Content="Rename" Command="{Binding ConfirmCommand}" />
+          </StackPanel>
+        </StackPanel>
       </Border>
     </Border>
 

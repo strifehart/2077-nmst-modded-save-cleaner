@@ -433,6 +433,47 @@
   <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
     <Setter Property="Background" Value="{StaticResource Card}" />
   </Style>
+  <!-- stars: amber ★ when starred; on unstarred rows the ☆ only shows while the row is hovered -->
+  <Style Selector="Button.star">
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="4,0" />
+    <Setter Property="Margin" Value="0,0,6,0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource Faint}" />
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.row:pointerover Button.star"><Setter Property="Opacity" Value="1" /></Style>
+  <Style Selector="Button.star.big"><Setter Property="Opacity" Value="1" /><Setter Property="FontSize" Value="22" /></Style>
+  <Style Selector="Button.star.on"><Setter Property="Opacity" Value="1" /><Setter Property="Foreground" Value="{StaticResource Amber}" /></Style>
+  <Style Selector="Button.star:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource Amber}" />
+  </Style>
+
+  <!-- two-part filter toggle (Show all | Starred): the active side is filled -->
+  <Style Selector="Button.seg">
+    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="10,2" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="Normal" />
+  </Style>
+  <Style Selector="Button.seg.on"><Setter Property="Background" Value="#401242" /><Setter Property="Foreground" Value="{StaticResource PinkSoft}" /></Style>
+  <Style Selector="Button.seg.starFilter.on"><Setter Property="Foreground" Value="{StaticResource Amber}" /></Style>
+
+  <!-- amber note under a save's actions (e.g. an autosave slot the game reuses) -->
+  <Style Selector="Border.hint">
+    <Setter Property="BorderBrush" Value="#66ffb020" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="{StaticResource AmberBg}" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="10,6" />
+  </Style>
+
   <!-- badges on backup cards: why a backup is always kept -->
   <Style Selector="Border.badge">
     <Setter Property="BorderThickness" Value="1" />

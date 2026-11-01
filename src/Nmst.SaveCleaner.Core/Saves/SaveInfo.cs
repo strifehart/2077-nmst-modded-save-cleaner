@@ -31,7 +31,8 @@ public sealed record SaveInfo(
     public string MetadataPath => Path.Combine(FolderPath, MetadataFile);
     public string? ScreenshotPath => File.Exists(Path.Combine(FolderPath, ScreenshotFile)) ? Path.Combine(FolderPath, ScreenshotFile) : null;
 
-    public SaveKind Kind => KindOf(FolderName);
+    /// <summary>From the folder name, or for a renamed save from the name the game gave it (kept in its metadata).</summary>
+    public SaveKind Kind => KindOf(FolderName) is var k && k != SaveKind.Other ? k : KindOf(Metadata?.Name ?? "");
     public DateTime Timestamp => Metadata?.Timestamp ?? LastWrite;
     public string? PlaythroughId => string.IsNullOrEmpty(Metadata?.PlaythroughId) ? null : Metadata!.PlaythroughId;
 

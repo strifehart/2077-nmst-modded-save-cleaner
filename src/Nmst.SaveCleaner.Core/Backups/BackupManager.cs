@@ -10,11 +10,14 @@ public sealed record BackupInfo(string FolderPath, string SaveFolderName, DateTi
 {
     /// <summary>
     /// True when the backup was taken from a save with the same name in a different saves folder (backups are filed
-    /// by folder name, so switching saves folders can show another folder's backups).
+    /// by folder name, so switching saves folders can show another folder's backups). Compares the saves folders,
+    /// not the save folders themselves, so a save renamed by the app still owns its backups.
     /// </summary>
     public bool IsFromOtherFolder(string currentSaveFolder) =>
-        SourceFolder.Length > 0 && !string.Equals(Normalise(SourceFolder), Normalise(currentSaveFolder),
+        SourceFolder.Length > 0 && !string.Equals(Parent(SourceFolder), Parent(currentSaveFolder),
             OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+
+    private static string Parent(string saveFolder) { var p = Normalise(saveFolder); return Path.GetDirectoryName(p) ?? p; }
 
     private static string Normalise(string p) => Path.GetFullPath(p).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
@@ -227,6 +230,30 @@ public sealed class BackupManager(string root, ActivityLog log)
         var parent = Path.GetDirectoryName(backup.FolderPath)!;
         try { if (Directory.Exists(parent) && !Directory.EnumerateFileSystemEntries(parent).Any()) Directory.Delete(parent); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+    }
+
+    /// <summary>
+    /// Files a save's backups under its new name after a rename. If backups already sit under the new name (e.g. a
+    /// deleted save that had it), they're merged: backup folders are named by time, so they don't collide.
+    /// </summary>
+    public void MoveSave(string oldName, string newName)
+    {
+        var from = Path.Combine(root, oldName);
+        if (!Directory.Exists(from)) return;
+        var to = Path.Combine(root, newName);
+        if (!Directory.Exists(to) && !string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase)) { Directory.Move(from, to); }
+        else if (string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase))
+        {
+            var temp = from + ".renaming";
+            Directory.Move(from, temp);
+            Directory.Move(temp, to);
+        }
+        else
+        {
+            foreach (var d in Directory.GetDirectories(from)) Directory.Move(d, Path.Combine(to, Path.GetFileName(d)));
+            TryDeleteDir(from);
+        }
+        log.Info($"Backups of {oldName} now filed under {newName}");
     }
 
     /// <summary>Names of the saves that have a backup folder.</summary>

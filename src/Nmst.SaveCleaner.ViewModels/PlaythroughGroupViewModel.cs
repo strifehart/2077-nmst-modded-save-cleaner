@@ -14,8 +14,15 @@ public sealed partial class PlaythroughGroupViewModel : ObservableObject
         Items = items;
         _changed = changed;
         foreach (var i in items)
-            i.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(SaveItemViewModel.IsChecked)) OnPropertyChanged(nameof(CheckState)); };
+            i.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(SaveItemViewModel.IsChecked)) OnPropertyChanged(nameof(CheckState));
+                else if (e.PropertyName == nameof(SaveItemViewModel.IsStarred)) { OnPropertyChanged(nameof(StarCount)); OnPropertyChanged(nameof(HasStars)); }
+            };
     }
+
+    public int StarCount => Items.Count(i => i.IsStarred);
+    public bool HasStars => StarCount > 0;
 
     public Playthrough Playthrough { get; }
     public IReadOnlyList<SaveItemViewModel> Items { get; }

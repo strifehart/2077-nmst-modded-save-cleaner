@@ -21,6 +21,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly BackupManager _backups;
     private readonly TagCleaner _cleaner;
     private readonly BatchLog _batches;
+    private readonly SaveNotes _notes;
     private List<SaveItemViewModel> _all = [];
     private List<PlaythroughGroupViewModel> _groups = [];
     private CancellationTokenSource? _flagScan;
@@ -50,6 +51,7 @@ public sealed partial class MainViewModel : ObservableObject
         _backups = new BackupManager(backupsRoot, Log);
         _cleaner = new TagCleaner(_backups, Log);
         _batches = new BatchLog(Path.Combine(backupsRoot, "batches.json"));
+        _notes = new SaveNotes(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(backupsRoot))!, "saves.json"));
 
         // a folder picked with "Change folder" wins over the detected one, as long as it still exists
         _defaultSavesFolder = savesFolder;
@@ -134,7 +136,7 @@ public sealed partial class MainViewModel : ObservableObject
                 ? $"No Cyberpunk 2077 saves in {SavesFolder}. Pick the folder that holds your ManualSave-… / AutoSave-… folders."
                 : "";
             var items = saves.ToDictionary(s => s.FolderPath, s => new SaveItemViewModel(s, _names, counts.GetValueOrDefault(s.FolderName)));
-            foreach (var i in items.Values) i.PropertyChanged += OnItemChanged;
+            foreach (var i in items.Values) { i.IsStarred = _notes.IsStarred(i.Info); i.PropertyChanged += OnItemChanged; }
             _all = items.Values.ToList();
             _groups = Playthrough.Group(saves)
                 .Select(p => new PlaythroughGroupViewModel(p, p.Saves.Select(s => items[s.FolderPath]).ToList(), RebuildRows))
@@ -192,20 +194,149 @@ public sealed partial class MainViewModel : ObservableObject
     private void RebuildRows()
     {
         var q = SearchText.Trim();
+        bool filtering = q.Length > 0 || ShowStarredOnly;
         var rows = new List<object>();
         foreach (var g in _groups)
         {
-            var visible = g.Items.Where(i => i.Matches(q)).ToList();
+            var visible = g.Items.Where(i => i.Matches(q) && (!ShowStarredOnly || i.IsStarred)).ToList();
             g.VisibleCount = visible.Count;
-            if (q.Length > 0 && visible.Count == 0) continue;
+            if (filtering && visible.Count == 0) continue;
             rows.Add(g);
-            if (g.IsExpanded || q.Length > 0) rows.AddRange(visible);
+            if (g.IsExpanded || filtering) rows.AddRange(visible);
         }
         Rows = new ObservableCollection<object>(rows);
-        NoMatches = q.Length > 0 && rows.Count == 0;
+        NoMatches = filtering && rows.Count == 0;
+        NoMatchesText = ShowStarredOnly && q.Length == 0
+            ? "No starred saves yet. Click the star on a save to keep it here."
+            : ShowStarredOnly ? "No starred saves match your search." : "No saves, quests or places match your search.";
+        StarredCount = _all.Count(i => i.IsStarred);
     }
 
     [ObservableProperty] private bool _noMatches;
+    [ObservableProperty] private string _noMatchesText = "";
+
+    // ---------- stars (saves.json in the app's folder, keyed by playthrough + in-game save time) ----------
+
+    /// <summary>Show only starred saves in the list (a filter, separate from ticking saves).</summary>
+    [ObservableProperty] private bool _showStarredOnly;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StarredLabel))]
+    private int _starredCount;
+    public string StarredLabel => $"★ Starred {StarredCount}";
+
+    partial void OnShowStarredOnlyChanged(bool value) => RebuildRows();
+
+    [RelayCommand] private void ShowAll() => ShowStarredOnly = false;
+    [RelayCommand] private void ShowStarred() => ShowStarredOnly = true;
+
+    [RelayCommand]
+    private void ToggleStar(SaveItemViewModel? item)
+    {
+        item ??= Focused;
+        if (item is null) return;
+        SetStars([item], !item.IsStarred);
+    }
+
+    [RelayCommand] private void StarChecked() => SetStars(_all.Where(i => i.IsChecked).ToList(), true);
+    [RelayCommand] private void UnstarChecked() => SetStars(_all.Where(i => i.IsChecked).ToList(), false);
+
+    private void SetStars(List<SaveItemViewModel> items, bool starred)
+    {
+        if (items.Count == 0) return;
+        foreach (var i in items) { i.IsStarred = starred; _notes.SetStarred(i.Info, starred); }
+        try { _notes.Save(); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Log.Error("Couldn't save stars · " + e.Message);
+            ShowResult("Couldn't save stars · see the log", true);
+        }
+        if (items.Count > 1) ShowResult($"{(starred ? "Starred" : "Unstarred")} {items.Count} saves", false);
+        if (ShowStarredOnly && !starred) RebuildRows();
+        else StarredCount = _all.Count(i => i.IsStarred);
+    }
+
+    // ---------- rename (renames the save folder: that's what the game's Load menu shows) ----------
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsRenameOpen))]
+    private RenameDialogViewModel? _renameDialog;
+    public bool IsRenameOpen => RenameDialog is not null;
+
+    [RelayCommand]
+    private async Task RenameFocusedAsync()
+    {
+        if (Focused is not { } item || IsBusy || IsRenameOpen) return;
+        await AskAndRenameAsync(item, "Rename save",
+            "The new name is what the game's Load menu shows. Nothing inside the save changes, and its file and folder dates stay as they are.",
+            item.Name);
+    }
+
+    /// <summary>Moves an auto/quick save out of the slot the game keeps reusing, so it can't be overwritten.</summary>
+    [RelayCommand]
+    private async Task KeepAutosaveAsync()
+    {
+        if (Focused is not { } item || IsBusy || IsRenameOpen) return;
+        var suggestion = $"Kept {item.Name} {item.Info.Timestamp:yyyy-MM-dd HH.mm}";
+        await AskAndRenameAsync(item, "Keep this autosave",
+            $"The game reuses {item.Name} for later saves. Giving it a name of its own moves it out of that slot so it's never overwritten. Nothing inside the save changes.",
+            suggestion);
+    }
+
+    [RelayCommand]
+    private async Task ResetNameAsync()
+    {
+        if (Focused is not { IsRenamed: true } item || IsBusy) return;
+        if (SaveRenamer.Validate(item.Info, item.OriginalName) is { } why)
+        {
+            ShowResult($"Can't reset to {item.OriginalName}: {why.ToLowerInvariant()}", true);
+            return;
+        }
+        if (!await _platform.ConfirmAsync("Reset name", $"Rename {item.Name} back to {item.OriginalName}, the name the game gave it?", "Reset"))
+            return;
+        await RenameAsync(item, item.OriginalName);
+    }
+
+    private async Task AskAndRenameAsync(SaveItemViewModel item, string title, string intro, string suggestion)
+    {
+        var dialog = new RenameDialogViewModel(title, intro, item.Name, item.IsRenamed ? item.OriginalName : "", suggestion,
+            n => SaveRenamer.Validate(item.Info, n));
+        RenameDialog = dialog;
+        bool go = await dialog.Result;
+        RenameDialog = null;
+        if (go) await RenameAsync(item, dialog.Name.Trim());
+    }
+
+    private async Task RenameAsync(SaveItemViewModel item, string newName)
+    {
+        if (!await CanWriteAsync()) return;
+        var old = item.Name;
+        _flagScan?.Cancel();   // its reads keep files in the folder open, which blocks a rename (the reload restarts it)
+        try
+        {
+            await Task.Run(() => SaveRenamer.Rename(item.Info, newName, _backups, _batches, Log));
+        }
+        catch (Exception e)
+        {
+            Log.Error($"{old}: rename failed · {e.Message}");
+            ShowResult($"{old}: rename failed · see the log", true);
+            return;
+        }
+        _notes.AddRename(item.Info, old, newName);
+        try { _notes.Save(); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Log.Warn("Couldn't record the rename history · " + e.Message); }
+
+        // the folder path changed: rescan, then put the focus back on the save under its new name
+        var group = _groups.FirstOrDefault(g => g.Items.Contains(item))?.Id;
+        await ReloadAsync();
+        if (_all.FirstOrDefault(i => i.Name == newName) is { } renamed)
+        {
+            if (_groups.FirstOrDefault(g => g.Items.Contains(renamed)) is { } g) g.IsExpanded = true;
+            else if (group is not null && _groups.FirstOrDefault(x => x.Id == group) is { } g2) g2.IsExpanded = true;
+            RebuildRows();
+            Focused = renamed;
+        }
+        ShowResult($"{old} renamed to {newName}", false);
+    }
 
     private void UpdateStatus()
     {

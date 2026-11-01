@@ -19,8 +19,15 @@ public sealed partial class SaveItemViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Name), nameof(ListLine), nameof(Location), nameof(TrackedQuest), nameof(Objective), nameof(MainQuest),
         nameof(MetaLine), nameof(PlayTime), nameof(Level), nameof(StreetCred), nameof(LifePath), nameof(Patch), nameof(Body), nameof(Reflexes),
-        nameof(Tech), nameof(Intelligence), nameof(Cool), nameof(StateDetail), nameof(Pills), nameof(BuildLine), nameof(BuildDetails))]
+        nameof(Tech), nameof(Intelligence), nameof(Cool), nameof(StateDetail), nameof(Pills), nameof(BuildLine), nameof(BuildDetails),
+        nameof(OriginalName), nameof(IsRenamed), nameof(WasLine), nameof(RenamedFromLine), nameof(IsInRotatingSlot))]
     private SaveInfo _info;
+
+    /// <summary>Starred by the user (kept in saves.json, never in the save).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StarTip))]
+    private bool _isStarred;
+    public string StarTip => IsStarred ? "Starred · click to unstar" : "Star this save";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StateLabel), nameof(StateDetail), nameof(IsTagged), nameof(IsClean))]
@@ -43,6 +50,14 @@ public sealed partial class SaveItemViewModel : ObservableObject
     private SaveMetadata? M => Info.Metadata;
 
     public string Name => Info.FolderName;
+
+    /// <summary>The name the game gave the save, kept in its metadata however the folder is renamed.</summary>
+    public string OriginalName => M?.Name ?? "";
+    public bool IsRenamed => OriginalName.Length > 0 && !string.Equals(OriginalName, Name, StringComparison.OrdinalIgnoreCase);
+    public string WasLine => IsRenamed ? "was " + OriginalName : "";
+    public string RenamedFromLine => IsRenamed ? "Renamed from " + OriginalName : "";
+    /// <summary>Still in an auto/quick slot the game reuses: "Keep this autosave" moves it out.</summary>
+    public bool IsInRotatingSlot => SaveInfo.KindOf(Name) is SaveKind.Auto or SaveKind.Quick;
     public bool IsReadable => M is not null;
     public bool IsTagged => State is ModdedState.Tagged or ModdedState.StickyOnly;
     public bool IsClean => State == ModdedState.Clean;
@@ -99,13 +114,14 @@ public sealed partial class SaveItemViewModel : ObservableObject
         }
     }
 
-    /// <summary>Case-insensitive search over the folder name, tracked quest, objective and main quest.</summary>
+    /// <summary>Case-insensitive search over the folder name (and original name), tracked quest, objective and main quest.</summary>
     public bool Matches(string query)
     {
         if (query.Length == 0) { MatchHint = ""; return true; }
         bool Has(string s) => s.Contains(query, StringComparison.OrdinalIgnoreCase);
         if (Has(Name)) { MatchHint = ""; return true; }
         if (M is null) return false;
+        if (IsRenamed && Has(OriginalName)) { MatchHint = "Was " + OriginalName; return true; }
         if (Has(TrackedQuest)) { MatchHint = "Quest: " + TrackedQuest; return true; }
         if (Has(Objective)) { MatchHint = "Objective: " + Objective; return true; }
         if (Has(MainQuest)) { MatchHint = "Main quest: " + MainQuest; return true; }

@@ -66,6 +66,12 @@ public partial class MainWindow : Window
             e.Handled = true;
             return;
         }
+        if (e.Key == Key.Escape && DataContext is MainViewModel { RenameDialog: { } rename } && !DialogLayer.IsVisible)
+        {
+            rename.CancelCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.Escape && DataContext is MainViewModel { Cleanup: { } cleanup } && !DialogLayer.IsVisible)
         {
             cleanup.CancelCommand.Execute(null);
@@ -220,6 +226,12 @@ public partial class MainWindow : Window
     private void OnVmChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (sender is not MainViewModel vm) return;
+        if (e.PropertyName == nameof(MainViewModel.RenameDialog) && vm.RenameDialog is not null)
+        {
+            // type straight away: focus the name with it selected
+            Dispatcher.UIThread.Post(() => { RenameBox.Focus(); RenameBox.SelectAll(); }, DispatcherPriority.Input);
+            return;
+        }
         if (e.PropertyName == nameof(MainViewModel.IsLogOpen))
         {
             LogDrawer.Height = vm.IsLogOpen ? _logHeight : 0;

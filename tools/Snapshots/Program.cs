@@ -14,7 +14,8 @@ using Nmst.SaveCleaner.ViewModels;
 
 var saves = args.Length > 0 ? args[0] : SaveScanner.DefaultSavesFolder;
 var outDir = Directory.CreateDirectory(args.Length > 1 ? args[1] : "snapshots").FullName;
-var backupRoot = Directory.CreateTempSubdirectory("savebrowser-snap-").FullName;
+var tempRoot = Directory.CreateTempSubdirectory("savebrowser-snap-").FullName;
+var backupRoot = Directory.CreateDirectory(Path.Combine(tempRoot, "Backups")).FullName;   // saves.json goes next to it, inside tempRoot
 
 AppBuilder.Configure<App>()
     .UseSkia()
@@ -158,6 +159,26 @@ try
     vm.Cleanup?.CancelCommand.Execute(null);
     Pump();
 
+    // stars (written to the temp saves.json only), the Starred filter, and the rename dialog (cancelled: no save is renamed)
+    vm.SelectNoneCommand.Execute(null);
+    Pump();
+    var starRows = vm.Rows.OfType<SaveItemViewModel>().Take(3).ToList();
+    vm.ToggleStarCommand.Execute(starRows[0]);
+    vm.ToggleStarCommand.Execute(starRows[2]);
+    vm.FocusSaveCommand.Execute(starRows[0]);
+    Shot("15_stars");
+    vm.ShowStarredOnly = true;
+    Shot("16_starred_filter");
+    vm.ShowStarredOnly = false;
+    var rename = vm.RenameFocusedCommand.ExecuteAsync(null);
+    WaitFor(() => vm.RenameDialog is not null, 10);
+    vm.RenameDialog!.Name = "Before Konpeki";
+    Shot("17_rename_dialog");
+    vm.RenameDialog.Name = "AutoSave-3";
+    Shot("17b_rename_refused");
+    vm.RenameDialog.CancelCommand.Execute(null);
+    Run(rename);
+
     var footer = w.GetLogicalDescendants().OfType<Border>().First(b => ToolTip.GetTip(b) is ItemsControl);
     ToolTip.SetIsOpen(footer, true);
     Shot("8_footer_tooltip");
@@ -185,7 +206,7 @@ try
 }
 finally
 {
-    Directory.Delete(backupRoot, true);
+    Directory.Delete(tempRoot, true);
 }
 
 static void Pump()
