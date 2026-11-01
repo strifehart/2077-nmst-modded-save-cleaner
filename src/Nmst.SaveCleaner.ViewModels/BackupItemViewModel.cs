@@ -9,9 +9,10 @@ public sealed record CompareField(string Label, string Value, bool Differs);
 
 public sealed class BackupItemViewModel
 {
-    public BackupItemViewModel(BackupInfo backup, SaveItemViewModel current, GameNames names)
+    public BackupItemViewModel(BackupInfo backup, SaveItemViewModel current, GameNames names, BackupProtection protection = BackupProtection.None)
     {
         Backup = backup;
+        Protection = protection;
         var m = backup.Metadata;
         var c = current.Info.Metadata;
         string state = Format.State(backup.State);
@@ -40,6 +41,13 @@ public sealed class BackupItemViewModel
     public string OtherFolderNote => IsFromOtherFolder ? "From another saves folder: " + Backup.SourceFolder : "";
 
     public BackupInfo Backup { get; }
+
+    /// <summary>Why this backup is kept: shown as badges, never offered for cleanup.</summary>
+    public BackupProtection Protection { get; }
+    public bool IsOriginal => Protection.HasFlag(BackupProtection.Original);
+    public bool IsManual => Protection.HasFlag(BackupProtection.Manual);
+    public bool IsUndo => Protection.HasFlag(BackupProtection.Undo);
+    public bool IsProtected => Protection != BackupProtection.None;
     public IReadOnlyList<CompareField> Fields { get; }
     public int DiffCount { get; }
     public string Title => $"{Backup.Reason} · {Format.DateTime(Backup.Created)}";

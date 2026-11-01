@@ -52,7 +52,20 @@
             <Border Width="1" Background="{StaticResource Line}" Margin="4,4" />
             <Button Content="Change folder" Command="{Binding ChangeFolderCommand}" />
             <Button Content="Reload" Command="{Binding ReloadCommand}" />
-            <Button Content="Backups" Command="{Binding OpenBackupsFolderCommand}" ToolTip.Tip="{Binding BackupsRoot}" />
+            <Button x:Name="BackupsButton" Content="Backups">
+              <Button.Flyout>
+                <Flyout Placement="BottomEdgeAlignedRight" Opening="OnBackupsMenuOpening">
+                  <StackPanel Spacing="10" MinWidth="260">
+                    <TextBlock Classes="label" Text="BACKUPS" />
+                    <TextBlock Text="{Binding BackupsSummary}" FontWeight="SemiBold" />
+                    <Button Classes="link" Content="Clean up backups…" Command="{Binding CleanUpBackupsCommand}" Click="OnBackupsMenuItemClick"
+                            ToolTip.Tip="Review the backups that can go. Originals, manual backups and the ones Undo needs are always kept." />
+                    <Button Classes="link" Content="Open backups folder" Command="{Binding OpenBackupsFolderCommand}" Click="OnBackupsMenuItemClick"
+                            ToolTip.Tip="{Binding BackupsRoot}" />
+                  </StackPanel>
+                </Flyout>
+              </Button.Flyout>
+            </Button>
             <Button Command="{Binding ToggleLogCommand}">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <TextBlock Text="Log" />
@@ -433,6 +446,19 @@
                     <Border Classes="card" Width="340" Margin="0,0,12,12">
                       <StackPanel Spacing="6">
                         <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <!-- kept no matter what: never offered by "Clean up backups" -->
+                        <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsProtected}">
+                          <Border Classes="badge original" IsVisible="{Binding IsOriginal}"
+                                  ToolTip.Tip="The save as the game wrote it, before the app cleaned it. Can't be recreated, so it's always kept.">
+                            <TextBlock Text="ORIGINAL" />
+                          </Border>
+                          <Border Classes="badge manual" IsVisible="{Binding IsManual}" ToolTip.Tip="You made this one with Back up. Always kept.">
+                            <TextBlock Text="MANUAL" />
+                          </Border>
+                          <Border Classes="badge undo" IsVisible="{Binding IsUndo}" ToolTip.Tip="Undo last batch needs this one. Kept until the next clean or restore.">
+                            <TextBlock Text="UNDO" />
+                          </Border>
+                        </StackPanel>
                         <TextBlock Text="{Binding DiffSummary}" Classes="faint" Foreground="{Binding HasDifferences, Converter={StaticResource DiffBrush}}" />
                         <TextBlock Text="{Binding OtherFolderNote}" Foreground="{StaticResource Amber}" FontSize="12" TextWrapping="Wrap"
                                    IsVisible="{Binding IsFromOtherFolder}" />
@@ -686,6 +712,52 @@
                 </ItemsControl>
               </Expander>
             </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+    </Border>
+
+    <!-- clean up backups: groups of backups that can go, each ticked as a whole. Esc cancels -->
+    <Border IsVisible="{Binding IsCleanupOpen}" Background="#cc040308">
+      <Border Classes="card" Width="760" Margin="0,48" HorizontalAlignment="Center" VerticalAlignment="Center"
+              BorderBrush="{StaticResource Pink}" Padding="26,22" Effect="drop-shadow(0 0 24 #66eb107e)" DataContext="{Binding Cleanup}">
+        <DockPanel x:DataType="vm:CleanupReviewViewModel">
+          <StackPanel DockPanel.Dock="Top" Spacing="10" Margin="0,0,0,14">
+            <TextBlock Classes="h1" FontSize="17" Text="CLEAN UP BACKUPS" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding KeptText}" />
+          </StackPanel>
+          <StackPanel DockPanel.Dock="Bottom" Spacing="12" Margin="0,14,0,0">
+            <TextBlock Classes="faint" TextWrapping="Wrap" Text="{Binding Summary}" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+              <Button Content="Cancel" Command="{Binding CancelCommand}" />
+              <Button Classes="danger" Content="{Binding ConfirmText}" Command="{Binding ConfirmCommand}" />
+            </StackPanel>
+          </StackPanel>
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Groups}" Margin="0,0,14,0">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:CleanupGroupViewModel">
+                  <Border Classes="card" Margin="0,0,0,10" Padding="16,12">
+                    <StackPanel Spacing="4">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <CheckBox IsChecked="{Binding IsChecked}" FontWeight="SemiBold" Content="{Binding Title}" />
+                        <TextBlock Grid.Column="1" Text="{Binding CountText}" Foreground="{StaticResource PinkSoft}" VerticalAlignment="Center" />
+                      </Grid>
+                      <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding Description}" Margin="28,0,0,0" />
+                      <Expander Header="{Binding ShowText}" Margin="28,4,0,0" HorizontalAlignment="Stretch">
+                        <ItemsControl ItemsSource="{Binding Items}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                              <TextBlock Text="{Binding}" Classes="faint" FontSize="13" Margin="0,1" />
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </Expander>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
           </ScrollViewer>
         </DockPanel>
       </Border>

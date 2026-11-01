@@ -66,6 +66,12 @@ public partial class MainWindow : Window
             e.Handled = true;
             return;
         }
+        if (e.Key == Key.Escape && DataContext is MainViewModel { Cleanup: { } cleanup } && !DialogLayer.IsVisible)
+        {
+            cleanup.CancelCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.Escape && DataContext is MainViewModel { IsMusicPanelOpen: true } open && !DialogLayer.IsVisible)
         {
             open.IsMusicPanelOpen = false;
@@ -108,6 +114,13 @@ public partial class MainWindow : Window
         BeginMoveDrag(e);
         e.Pointer.Capture(null);   // the move loop has ended by the time BeginMoveDrag returns
     }
+
+    // Backups menu: the size is worked out when it opens; picking an item closes it. The Click event runs before the
+    // button's Command, and hiding the flyout right away detaches its content (and the Command binding with it), so the
+    // command never ran: close it once the click has been handled.
+    private void OnBackupsMenuOpening(object? sender, EventArgs e) => _ = (DataContext as MainViewModel)?.UpdateBackupsSummaryAsync();
+    private void OnBackupsMenuItemClick(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e) =>
+        Dispatcher.UIThread.Post(() => BackupsButton.Flyout?.Hide());
 
     private void ToggleMaximise() => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
     private void OnMinimiseClick(object? sender, global::Avalonia.Interactivity.RoutedEventArgs e) => WindowState = WindowState.Minimized;

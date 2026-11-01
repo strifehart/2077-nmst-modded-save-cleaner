@@ -132,6 +132,32 @@ try
     vm.Review?.CancelCommand.Execute(null);
     Run(undo);
 
+    // clean up backups: a Before restore copy that differs (offered as "before restore") and one identical to the save
+    var nudged = bm2.Create(picks[2].Info, "Before restore");
+    File.AppendAllText(Path.Combine(nudged.FolderPath, SaveInfo.MetadataFile), "  ");
+    bm2.Create(picks[3].Info, "Before restore");
+    var cleanup = vm.CleanUpBackupsCommand.ExecuteAsync(null);
+    WaitFor(() => vm.Cleanup is not null, 30);
+    Shot("13_cleanup_review");
+    vm.Cleanup?.CancelCommand.Execute(null);
+    Run(cleanup);
+
+    var backupsButton = w.FindControl<Button>("BackupsButton")!;
+    Run(vm.UpdateBackupsSummaryAsync());
+    backupsButton.Flyout!.ShowAt(backupsButton);
+    Pump(); Thread.Sleep(300);
+    Shot("14_backups_menu");
+    // click "Clean up backups…" the way a user does (button click, not the command directly): the review must open
+    var menuLink = ((Control)((Flyout)backupsButton.Flyout).Content!).GetLogicalDescendants().OfType<Button>()
+        .First(b => (b.Content as string)?.StartsWith("Clean up") == true);
+    var peer = Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(menuLink);
+    ((Avalonia.Automation.Provider.IInvokeProvider)peer).Invoke();
+    WaitFor(() => vm.Cleanup is not null, 10);
+    Console.WriteLine("menu click opens the cleanup review: " + (vm.Cleanup is not null));
+    Console.WriteLine("menu closed after the click: " + !backupsButton.Flyout.IsOpen);
+    vm.Cleanup?.CancelCommand.Execute(null);
+    Pump();
+
     var footer = w.GetLogicalDescendants().OfType<Border>().First(b => ToolTip.GetTip(b) is ItemsControl);
     ToolTip.SetIsOpen(footer, true);
     Shot("8_footer_tooltip");

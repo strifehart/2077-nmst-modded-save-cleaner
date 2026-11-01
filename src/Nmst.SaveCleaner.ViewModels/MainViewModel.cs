@@ -346,7 +346,10 @@ public sealed partial class MainViewModel : ObservableObject
     {
         FocusedBackups.Clear();
         if (Focused is null) return;
-        foreach (var b in _backups.List(Focused.Name)) FocusedBackups.Add(new BackupItemViewModel(b, Focused, _names));
+        var all = _backups.List(Focused.Name);
+        var undo = UndoBackupIds();
+        foreach (var b in all)
+            FocusedBackups.Add(new BackupItemViewModel(b, Focused, _names, BackupCatalog.Protection(b, all, Focused.Info.Metadata, undo)));
         Focused.BackupCount = FocusedBackups.Count;
     }
 
@@ -559,18 +562,86 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task DeleteBackupAsync(BackupItemViewModel backup)
     {
-        if (!await _platform.ConfirmAsync("Delete backup",
-                $"Permanently delete the {backup.Backup.Reason.ToLowerInvariant()} backup of {backup.Backup.SaveFolderName} from {Format.DateTime(backup.Backup.Created)}? This can't be undone.",
+        var b = backup.Backup;
+        // protected backups can still be deleted by hand, with a warning saying what's lost
+        string warning = backup.IsOriginal
+            ? $"\n\nThis is the original of {b.SaveFolderName}: the save as the game wrote it, before the app cleaned it. It can't be recreated."
+            : backup.IsUndo ? "\n\nUndo last batch needs this backup; without it, this save can't be undone."
+            : backup.IsManual ? "\n\nYou made this backup yourself." : "";
+        if (!await _platform.ConfirmAsync(backup.IsProtected ? "Delete a kept backup" : "Delete backup",
+                $"Permanently delete the {b.Reason.ToLowerInvariant()} backup of {b.SaveFolderName} from {Format.DateTime(b.Created)}? This can't be undone.{warning}",
                 "Delete"))
             return;
         if (IsBusy) return;
-        BeginBusy($"Deleting backup of {backup.Backup.SaveFolderName}");
+        BeginBusy($"Deleting backup of {b.SaveFolderName}");
         bool ok = true;
-        try { await Task.Run(() => _backups.Delete(backup.Backup)); }
+        try { await Task.Run(() => _backups.Delete(b)); }
         catch (Exception e) { ok = false; Log.Error($"Couldn't delete backup: {e.Message}"); }
         finally { await EndBusyAsync(); }
         ShowResult(ok ? "Backup deleted" : "Couldn't delete the backup · see the log", !ok);
         LoadFocusedBackups();
+        _ = UpdateBackupsSummaryAsync();
+    }
+
+    // ---------- backups menu + clean up backups ----------
+
+    /// <summary>"77 MB in 26 backups", refreshed when the Backups menu opens.</summary>
+    [ObservableProperty] private string _backupsSummary = "";
+
+    public async Task UpdateBackupsSummaryAsync()
+    {
+        var (size, count) = await Task.Run(() => (_backups.TotalSize(), _backups.Counts().Values.Sum()));
+        BackupsSummary = count == 0 ? "No backups yet" : $"{Format.Size(size)} in {count} backup{(count == 1 ? "" : "s")}";
+    }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsCleanupOpen))]
+    private CleanupReviewViewModel? _cleanup;
+    public bool IsCleanupOpen => Cleanup is not null;
+
+    [RelayCommand]
+    private async Task CleanUpBackupsAsync()
+    {
+        if (IsBusy || IsReviewOpen || IsCleanupOpen) return;
+        var undo = UndoBackupIds();
+        var (candidates, total) = await Task.Run(() =>
+            (BackupCatalog.Candidates(_backups, SavesFolder, undo), _backups.Counts().Values.Sum()));
+        if (candidates.Count == 0)
+        {
+            ShowResult(total == 0 ? "No backups yet" : "Nothing to clean up: every backup is kept for a reason", false);
+            return;
+        }
+        var review = new CleanupReviewViewModel(candidates, total - candidates.Count);
+        Cleanup = review;
+        bool go = await review.Result;
+        Cleanup = null;
+        var chosen = review.Chosen;
+        if (!go || chosen.Count == 0) return;
+        if (!await _platform.ConfirmAsync("Delete backups",
+                $"Permanently delete {chosen.Count} backup{(chosen.Count == 1 ? "" : "s")} ({Format.Size(review.ChosenSize)})? This can't be undone.", "Delete"))
+            return;
+
+        BeginBusy("Deleting backups…");
+        int ok = 0, failed = 0;
+        long freed = 0;
+        try
+        {
+            for (int n = 0; n < chosen.Count; n++)
+            {
+                var b = chosen[n];
+                BusyText = $"Deleting {n + 1}/{chosen.Count} · {b.SaveFolderName}";
+                Progress = (double)n / chosen.Count;
+                try { await Task.Run(() => _backups.Delete(b)); ok++; freed += b.SizeBytes; }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { failed++; Log.Error($"{b.SaveFolderName}: couldn't delete backup {b.Id} · {e.Message}"); }
+            }
+        }
+        finally { await EndBusyAsync(); }
+        Log.Done($"Clean up backups: {ok} deleted ({Format.Size(freed)}), {failed} failed");
+        ShowResult(failed > 0 ? $"{failed} couldn't be deleted, {ok} deleted · see the log" : $"Deleted {ok} backup{(ok == 1 ? "" : "s")} · freed {Format.Size(freed)}", failed > 0);
+        var counts = await Task.Run(_backups.Counts);
+        foreach (var i in _all) i.BackupCount = counts.GetValueOrDefault(i.Name);
+        LoadFocusedBackups(); UpdateBatch();
+        await UpdateBackupsSummaryAsync();
     }
 
     // ---------- bulk restore + undo last batch (both reviewed in RestoreReview before anything changes) ----------
@@ -590,6 +661,9 @@ public sealed partial class MainViewModel : ObservableObject
         $"Undo the last {(b.Kind == BatchKind.Clean ? "clean" : "restore")} · {b.Saves.Count} save{(b.Saves.Count == 1 ? "" : "s")} · {Format.DateTime(b.TimeUtc.ToLocalTime())}";
 
     private void RefreshLastBatch() => LastBatch = _batches.Last(SavesFolder);
+
+    /// <summary>The backups the current undo would put back: protected until the next batch.</summary>
+    private IReadOnlySet<string> UndoBackupIds() => LastBatch?.Saves.Select(s => s.BackupId).ToHashSet() ?? [];
 
     /// <summary>Remembers what a clean/restore touched so it can be undone; true when there's something to undo.</summary>
     private bool RecordBatch(string id, BatchKind kind, List<BatchSave> touched)

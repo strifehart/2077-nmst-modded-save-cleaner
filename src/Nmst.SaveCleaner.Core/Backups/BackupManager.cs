@@ -219,11 +219,21 @@ public sealed class BackupManager(string root, ActivityLog log)
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return false; }
     }
 
-    /// <summary>Deletes one backup. Only ever called on an explicit user request.</summary>
+    /// <summary>Deletes one backup (and the save's backup folder once it's empty). Only ever on an explicit user request.</summary>
     public void Delete(BackupInfo backup)
     {
         Directory.Delete(backup.FolderPath, true);
-        log.Info($"{backup.SaveFolderName}: deleted backup {backup.Id}");
+        log.Info($"{backup.SaveFolderName}: deleted backup {backup.Id} ({backup.Reason.ToLowerInvariant()})");
+        var parent = Path.GetDirectoryName(backup.FolderPath)!;
+        try { if (Directory.Exists(parent) && !Directory.EnumerateFileSystemEntries(parent).Any()) Directory.Delete(parent); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+    }
+
+    /// <summary>Names of the saves that have a backup folder.</summary>
+    public IReadOnlyList<string> SaveNames()
+    {
+        try { return Directory.Exists(root) ? Directory.GetDirectories(root).Select(d => Path.GetFileName(d)!).ToList() : []; }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return []; }
     }
 
     internal static void TryDeleteFile(string path) { try { if (File.Exists(path)) File.Delete(path); } catch (Exception) { } }
