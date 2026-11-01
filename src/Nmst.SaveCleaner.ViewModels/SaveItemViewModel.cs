@@ -56,6 +56,11 @@ public sealed partial class SaveItemViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasBackups))]
     private int _backupCount;
 
+    /// <summary>Total size of this save's backups; filled in when the save is focused and its backups are listed.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BuildLine), nameof(BuildDetails))]
+    private long _backupsBytes;
+
     /// <summary>Why the current search matched ("quest", "objective"…); empty when it matched the name or there's no search.</summary>
     [ObservableProperty] private string _matchHint = "";
 
@@ -101,7 +106,8 @@ public sealed partial class SaveItemViewModel : ObservableObject
     public int FinishedQuests => M?.FinishedQuests.Count ?? 0;
     public string? ScreenshotPath => Info.ScreenshotPath;
     public string BuildLine => M is null ? "" :
-        $"build {ShortBuild(M.BuildId)} · save format {M.SaveVersion} · playthrough {M.PlaythroughId} · {Format.Size(Info.SizeBytes)}";
+        $"build {ShortBuild(M.BuildId)} · save format {M.SaveVersion} · playthrough {M.PlaythroughId} · {Format.Size(Info.SizeBytes)}" +
+        (BackupsBytes > 0 ? $" · {Format.Size(Info.SizeBytes + BackupsBytes)} with backups" : "");
 
     /// <summary>"3.0.5813403  P4CL: 13555055  Stream: //R6.Root/R6.Release" → "3.0.5813403" (the rest is CDPR's source-control detail).</summary>
     private static string ShortBuild(string build) => build.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
@@ -114,6 +120,10 @@ public sealed partial class SaveItemViewModel : ObservableObject
         new("Save format", M.SaveVersion.ToString(), "The save file format's version."),
         new("Playthrough ID", M.PlaythroughId, "Shared by every save from the same playthrough."),
         new("Size on disk", Format.Size(Info.SizeBytes), "All of this save's files together."),
+        .. BackupsBytes > 0
+            ? new[] { new TechDetail("With backups", Format.Size(Info.SizeBytes + BackupsBytes),
+                $"This save plus its {BackupCount} backup{(BackupCount == 1 ? "" : "s")} ({Format.Size(BackupsBytes)}).") }
+            : [],
     ];
 
     public IReadOnlyList<string> Pills

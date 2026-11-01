@@ -123,4 +123,26 @@ public class ViewModelTests
         Assert.Equal("", vm.SearchText);
         Assert.Equal(all, vm.Rows.Count);
     }
+
+    [Fact]
+    public async Task The_size_line_adds_up_the_save_and_its_backups()
+    {
+        var tagged = RealSaves.Find((m, s) => m.IsModded && s == true);
+        if (tagged is null) return;
+        using var t = new TempDir();
+        t.CopySave(tagged);
+        var vm = new MainViewModel(new FakePlatform(), t.Saves, t.Backups, null) { MinBusyTime = TimeSpan.Zero };
+        await vm.ReloadCommand.ExecuteAsync(null);
+        await WaitForFlags(vm);
+        Assert.DoesNotContain("with backups", vm.Focused!.BuildLine);
+        Assert.DoesNotContain(vm.Focused.BuildDetails, d => d.Label == "With backups");
+
+        await vm.CleanFocusedCommand.ExecuteAsync(null);
+        var f = vm.Focused!;
+        long backups = vm.FocusedBackups.Sum(b => b.Backup.SizeBytes);
+        Assert.True(backups > 0);
+        Assert.Equal(backups, f.BackupsBytes);
+        Assert.EndsWith($" · {Format.Size(f.Info.SizeBytes + backups)} with backups", f.BuildLine);
+        Assert.Equal(Format.Size(f.Info.SizeBytes + backups), Assert.Single(f.BuildDetails, d => d.Label == "With backups").Value);
+    }
 }

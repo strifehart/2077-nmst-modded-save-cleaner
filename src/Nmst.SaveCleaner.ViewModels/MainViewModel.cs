@@ -523,6 +523,7 @@ public sealed partial class MainViewModel : ObservableObject
         foreach (var b in all)
             FocusedBackups.Add(new BackupItemViewModel(b, Focused, _names, BackupCatalog.Protection(b, all, Focused.Info.Metadata, undo)));
         Focused.BackupCount = FocusedBackups.Count;
+        Focused.BackupsBytes = all.Sum(b => b.SizeBytes);
     }
 
     [RelayCommand]

@@ -109,7 +109,7 @@
             <Button DockPanel.Dock="Right" Classes="link" Content="Use default" Margin="10,0,0,0" IsVisible="{Binding IsCustomFolder}"
                     Command="{Binding UseDefaultFolderCommand}" ToolTip.Tip="Go back to the detected Saved Games folder" />
             <TextBlock Classes="mono" Foreground="{StaticResource Faint}" FontSize="11" Text="{Binding SavesFolder}" VerticalAlignment="Center"
-                       TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding SavesFolder}" />
+                       TextTrimming="CharacterEllipsis" />
           </DockPanel>
           <!-- result of the last action: fades out after a few seconds; errors stay red until clicked -->
           <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0" IsVisible="{Binding !IsBusy}"
