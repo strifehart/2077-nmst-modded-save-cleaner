@@ -323,10 +323,14 @@
             <StackPanel Spacing="16" MaxWidth="1180" HorizontalAlignment="Stretch"
                         DataContext="{Binding Focused}" x:DataType="vm:SaveItemViewModel">
               <Grid ColumnDefinitions="Auto,*">
-                <Border CornerRadius="6" ClipToBounds="True" BorderBrush="{StaticResource Purple}" BorderThickness="1"
-                        Width="384" Height="216" Background="{StaticResource Card}">
-                  <Image Source="{Binding ScreenshotPath, Converter={StaticResource PathToBitmap}}" Stretch="UniformToFill" />
-                </Border>
+                <!-- the image is clipped to the rounded shape and the frame is drawn on top of it: with the frame on the
+                     same Border, the picture's square corners covered the rounded line at each corner -->
+                <Panel Width="384" Height="216">
+                  <Border CornerRadius="6" ClipToBounds="True" Background="{StaticResource Card}">
+                    <Image Source="{Binding ScreenshotPath, Converter={StaticResource PathToBitmap}}" Stretch="UniformToFill" />
+                  </Border>
+                  <Border CornerRadius="6" BorderBrush="{StaticResource Purple}" BorderThickness="1" IsHitTestVisible="False" />
+                </Panel>
                 <StackPanel Grid.Column="1" Margin="22,2,0,0" Spacing="8">
                   <TextBlock Classes="h1" Text="{Binding Name}" />
                   <TextBlock Classes="muted" Text="{Binding MetaLine}" FontSize="16" />
@@ -579,7 +583,7 @@
                       </StackPanel>
 
                       <Grid ColumnDefinitions="Auto,*,34">
-                        <Button Classes="link" Margin="0,0,10,0" Command="{Binding ToggleMuteCommand}" ToolTip.Tip="Mute / unmute (remembered)">
+                        <Button Classes="link" Margin="0,0,10,0" Command="{Binding ToggleMuteCommand}" ToolTip.Tip="Mute / unmute">
                           <Viewbox Width="22" Height="22"><Canvas Width="24" Height="24">
                             <Path Classes="glyph" Stroke="{StaticResource Cyan}" IsVisible="{Binding !MusicMuted}" Data="M4 9.5 H8 L13 5.5 V18.5 L8 14.5 H4 Z" />
                             <Path Classes="glyph" Stroke="{StaticResource Cyan}" IsVisible="{Binding !MusicMuted}" Data="M16 9.5 A3.5 3.5 0 0 1 16 14.5 M18.5 7 A7 7 0 0 1 18.5 17" />
@@ -589,7 +593,6 @@
                         <Slider Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding MusicVolume}" IsEnabled="{Binding !MusicMuted}" VerticalAlignment="Center" />
                         <TextBlock Grid.Column="2" Text="{Binding MusicVolume, StringFormat='{}{0:0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                       </Grid>
-                      <TextBlock Classes="faint" TextWrapping="Wrap" Text="Original synthwave by strifehart. Mute and volume are remembered." />
                     </StackPanel>
                     <TextBlock Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !MusicAvailable}"
                                Text="Music isn't available on this system yet." />

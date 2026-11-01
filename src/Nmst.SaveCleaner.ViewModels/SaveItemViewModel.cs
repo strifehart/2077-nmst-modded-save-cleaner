@@ -69,16 +69,19 @@ public sealed partial class SaveItemViewModel : ObservableObject
     public int FinishedQuests => M?.FinishedQuests.Count ?? 0;
     public string? ScreenshotPath => Info.ScreenshotPath;
     public string BuildLine => M is null ? "" :
-        $"build {M.BuildId.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()} · save v{M.SaveVersion} · playthrough {M.PlaythroughId} · {Format.Size(Info.SizeBytes)}";
+        $"build {ShortBuild(M.BuildId)} · save format {M.SaveVersion} · playthrough {M.PlaythroughId} · {Format.Size(Info.SizeBytes)}";
+
+    /// <summary>"3.0.5813403  P4CL: 13555055  Stream: //R6.Root/R6.Release" → "3.0.5813403" (the rest is CDPR's source-control detail).</summary>
+    private static string ShortBuild(string build) => build.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
 
     /// <summary>One tooltip explaining every value in <see cref="BuildLine"/>.</summary>
     public IReadOnlyList<TechDetail> BuildDetails => M is null ? [] :
     [
-        new("Build", M.BuildId, "The internal build of the game that wrote this save. More precise than the patch number."),
-        new("Started on", M.InitialBuildId.Length > 0 ? M.InitialBuildId : "unknown", "The game build this playthrough began on."),
-        new("Save version", M.SaveVersion.ToString(), "The save-file format. CDPR raises it when the structure changes, so check it first if a patch breaks cleaning."),
-        new("Playthrough", M.PlaythroughId, "The run this save belongs to. The list groups saves by it, like the game's load menu."),
-        new("Size", Format.Size(Info.SizeBytes), "The whole save folder: sav.dat, metadata.9.json and screenshot.png."),
+        new("Saved with", ShortBuild(M.BuildId), "The exact game build that made this save. Useful to include if you report a problem."),
+        new("Playthrough started on", M.InitialBuildId.Length > 0 ? ShortBuild(M.InitialBuildId) : "unknown", "The game build this playthrough began on. Long playthroughs often span several patches."),
+        new("Save format", M.SaveVersion.ToString(), "The version of the save file's layout. If a game patch stops the app from cleaning saves, this number has usually changed."),
+        new("Playthrough ID", M.PlaythroughId, "Every new game gets its own ID, and all saves from that run share it. That's how saves are grouped, here and in the game's Load menu."),
+        new("Size on disk", Format.Size(Info.SizeBytes), "This save's files together: the save data, its details file and the screenshot."),
     ];
 
     public IReadOnlyList<string> Pills
