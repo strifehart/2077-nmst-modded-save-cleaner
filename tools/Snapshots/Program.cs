@@ -1,4 +1,5 @@
 // Usage: Snapshots <saves folder> <output folder>
+//        Snapshots --nexus <saves folder> <output folder>   (Nexus page screenshots, see NexusShots.cs)
 // Reads saves only. Backups made for the screenshots go into a temp folder that's deleted afterwards.
 using Avalonia;
 using Avalonia.Headless;
@@ -11,6 +12,8 @@ using Nmst.SaveCleaner.Core.Backups;
 using Nmst.SaveCleaner.Core.Logging;
 using Nmst.SaveCleaner.Core.Saves;
 using Nmst.SaveCleaner.ViewModels;
+
+if (args is ["--nexus", var nexusSaves, var nexusOut]) { NexusShots.Run(nexusSaves, nexusOut); return; }
 
 var saves = args.Length > 0 ? args[0] : SaveScanner.DefaultSavesFolder;
 var outDir = Directory.CreateDirectory(args.Length > 1 ? args[1] : "snapshots").FullName;
