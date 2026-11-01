@@ -33,6 +33,7 @@ Every save is backed up before it's changed, and can be restored from its panel.
     Logs\      everything the app did
     settings.json   music mute/volume, a saves folder you picked, the terms you accepted
     saves.json      starred saves and rename history (nothing is written into the saves)
+    Trash\          deleted saves, until you restore them or delete them for good
 
 Saves are found automatically (Windows: Saved Games\CD Projekt Red\Cyberpunk 2077). If yours are somewhere
 else, use "Change folder"; the choice is remembered.

@@ -179,6 +179,21 @@ try
     vm.RenameDialog.CancelCommand.Execute(null);
     Run(rename);
 
+    // deleted saves: two temp copies of real saves are trashed (the real ones are never touched), then the view opens
+    var fakeSaves = Directory.CreateDirectory(Path.Combine(tempRoot, "fake-saves")).FullName;
+    var fakeTrash = new SaveTrash(Path.Combine(tempRoot, "Trash"), new ActivityLog(null));
+    foreach (var s in starRows.Take(2))
+    {
+        var copy = Directory.CreateDirectory(Path.Combine(fakeSaves, s.Name)).FullName;
+        foreach (var file in Directory.GetFiles(s.Info.FolderPath)) File.Copy(file, Path.Combine(copy, Path.GetFileName(file)));
+        fakeTrash.Delete(SaveScanner.Read(copy));
+    }
+    Run(vm.OpenTrashCommand.ExecuteAsync(null));
+    vm.TrashView!.Rows[0].IsChecked = true;
+    Shot("18_deleted_saves");
+    vm.TrashView.CloseCommand.Execute(null);
+    Pump();
+
     var footer = w.GetLogicalDescendants().OfType<Border>().First(b => ToolTip.GetTip(b) is ItemsControl);
     ToolTip.SetIsOpen(footer, true);
     Shot("8_footer_tooltip");

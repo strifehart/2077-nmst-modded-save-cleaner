@@ -53,7 +53,12 @@ public sealed partial class SaveItemViewModel : ObservableObject
 
     /// <summary>The name the game gave the save, kept in its metadata however the folder is renamed.</summary>
     public string OriginalName => M?.Name ?? "";
-    public bool IsRenamed => OriginalName.Length > 0 && !string.Equals(OriginalName, Name, StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// Has a name of its own. A folder still in the game's pattern but with another number (ManualSave-1307 holding
+    /// ManualSave-1306) is a copied save, not a renamed one.
+    /// </summary>
+    public bool IsRenamed => OriginalName.Length > 0 && !string.Equals(OriginalName, Name, StringComparison.OrdinalIgnoreCase)
+                             && !SaveRenamer.IsGameName(Name);
     public string WasLine => IsRenamed ? "was " + OriginalName : "";
     public string RenamedFromLine => IsRenamed ? "Renamed from " + OriginalName : "";
     /// <summary>Still in an auto/quick slot the game reuses: "Keep this autosave" moves it out.</summary>
@@ -92,11 +97,11 @@ public sealed partial class SaveItemViewModel : ObservableObject
     /// <summary>One tooltip explaining every value in <see cref="BuildLine"/>.</summary>
     public IReadOnlyList<TechDetail> BuildDetails => M is null ? [] :
     [
-        new("Saved with", ShortBuild(M.BuildId), "The exact game build that made this save. Useful to include if you report a problem."),
-        new("Playthrough started on", M.InitialBuildId.Length > 0 ? ShortBuild(M.InitialBuildId) : "unknown", "The game build this playthrough began on. Long playthroughs often span several patches."),
-        new("Save format", M.SaveVersion.ToString(), "The version of the save file's layout. If a game patch stops the app from cleaning saves, this number has usually changed."),
-        new("Playthrough ID", M.PlaythroughId, "Every new game gets its own ID, and all saves from that run share it. That's how saves are grouped, here and in the game's Load menu."),
-        new("Size on disk", Format.Size(Info.SizeBytes), "This save's files together: the save data, its details file and the screenshot."),
+        new("Saved with", ShortBuild(M.BuildId), "The game build that made this save."),
+        new("Playthrough started on", M.InitialBuildId.Length > 0 ? ShortBuild(M.InitialBuildId) : "unknown", "The game build this playthrough began on."),
+        new("Save format", M.SaveVersion.ToString(), "The save file format's version."),
+        new("Playthrough ID", M.PlaythroughId, "Shared by every save from the same playthrough."),
+        new("Size on disk", Format.Size(Info.SizeBytes), "All of this save's files together."),
     ];
 
     public IReadOnlyList<string> Pills

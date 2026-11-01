@@ -19,6 +19,7 @@ public static class AppPaths
 
     public static string DataRoot => Path.Combine(LocalAppData, "Cyberpunk 2077 - " + AppInfo.Name);
     public static string Backups => Path.Combine(DataRoot, "Backups");
+    public static string Trash => Path.Combine(DataRoot, "Trash");
     public static string LogFile => Path.Combine(DataRoot, "Logs", "ModdedSaveCleaner.log");
     public static string SettingsFile => Path.Combine(DataRoot, "settings.json");
 

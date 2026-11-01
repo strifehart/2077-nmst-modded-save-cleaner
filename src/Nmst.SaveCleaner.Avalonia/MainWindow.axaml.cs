@@ -66,6 +66,12 @@ public partial class MainWindow : Window
             e.Handled = true;
             return;
         }
+        if (e.Key == Key.Escape && DataContext is MainViewModel { TrashView: { } trash } && !DialogLayer.IsVisible)
+        {
+            trash.CloseCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.Escape && DataContext is MainViewModel { RenameDialog: { } rename } && !DialogLayer.IsVisible)
         {
             rename.CancelCommand.Execute(null);

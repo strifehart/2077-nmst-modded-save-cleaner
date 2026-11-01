@@ -142,13 +142,22 @@ public class RenameStarTests
         await vm.ReloadCommand.ExecuteAsync(null);
         var item = vm.Rows.OfType<SaveItemViewModel>().Concat(vm.Rows.OfType<PlaythroughGroupViewModel>().SelectMany(g => g.Items))
             .First(i => i.Name == Path.GetFileName(save));
-        var original = item.Name;
+        var original = item.OriginalName;   // the game's name (the folder may already be renamed)
 
         vm.ToggleStarCommand.Execute(item);
         Assert.True(item.IsStarred);
         vm.ShowStarredOnly = true;
-        Assert.Equal([original], vm.Rows.OfType<SaveItemViewModel>().Select(i => i.Name));
+        Assert.Equal([item.Name], vm.Rows.OfType<SaveItemViewModel>().Select(i => i.Name));
         Assert.Equal(1, vm.StarredCount);
+
+        // a group can be collapsed while filtering, and a new filter opens it again
+        var group = vm.Rows.OfType<PlaythroughGroupViewModel>().Single();
+        group.ToggleExpandedCommand.Execute(null);
+        Assert.Empty(vm.Rows.OfType<SaveItemViewModel>());
+        Assert.Single(vm.Rows.OfType<PlaythroughGroupViewModel>());
+        vm.Filter = MainViewModel.ListFilter.All;
+        vm.ShowStarredOnly = true;
+        Assert.Single(vm.Rows.OfType<SaveItemViewModel>());
 
         // rename through the dialog
         vm.FocusSaveCommand.Execute(item);
@@ -169,9 +178,17 @@ public class RenameStarTests
         Assert.Equal("Renamed from " + original, renamed.RenamedFromLine);
         Assert.True(new SaveNotes(Path.Combine(t.Root, "saves.json")).RenamesOf(renamed.Info).Count == 1);
 
+        vm.Filter = MainViewModel.ListFilter.Renamed;
+        Assert.Contains(vm.Rows.OfType<SaveItemViewModel>(), i => i.Name == "Before Konpeki");
+        Assert.True(vm.RenamedCount >= 1);
+        vm.Filter = MainViewModel.ListFilter.All;
+
         // reset back to the game's name
         await vm.ResetNameCommand.ExecuteAsync(null);
         Assert.Equal(original, vm.Focused!.Name);
+        vm.Filter = MainViewModel.ListFilter.Renamed;   // nothing renamed now, unless the test folder had renamed saves already
+        Assert.DoesNotContain(vm.Rows.OfType<SaveItemViewModel>(), i => i.Name == original);
+        vm.Filter = MainViewModel.ListFilter.All;
         Assert.True(vm.Focused.IsStarred);
         Assert.False(vm.Focused.IsRenamed);
     }

@@ -19,6 +19,8 @@ The plugin stops *new* saves from being tagged. This app cleans the ones that al
 - Restores many saves at once: pick a rule (undo cleaning, latest manual backup, newest backup), check the saves
   that have more than one restore point, then restore
 - Undoes the last clean or restore in one go, leaving out saves the game has written to since
+- Deletes saves to the app's trash (*Backups → Deleted saves*), where they can be restored with their dates or
+  deleted for good. A name the game has reused since is never overwritten: the save comes back as "… restored"
 - Star saves and filter the list to just the starred ones. Stars live in the app's `saves.json`, never in the saves
 - Renames saves: the new name is what the game's Load menu shows. Only the folder is renamed (dates kept, nothing
   inside changes), backups follow, and *Reset name* puts the game's name back. *Keep this autosave* moves an
@@ -63,6 +65,7 @@ The app keeps its own files in `%LOCALAPPDATA%\Cyberpunk 2077 - NMST Modded Save
 | `Logs\ModdedSaveCleaner.log` | everything the app did |
 | `settings.json` | music mute and volume, a saves folder you picked, the terms version you accepted |
 | `saves.json` | starred saves and rename history, keyed by playthrough + in-game save time |
+| `Trash\<save>\<date-time>\` | deleted saves, until restored or deleted for good |
 
 Backups are never deleted automatically. Delete old ones from a save's panel when you no longer need them.
 

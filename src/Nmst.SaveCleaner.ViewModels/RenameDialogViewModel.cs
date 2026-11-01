@@ -27,9 +27,9 @@ public sealed partial class RenameDialogViewModel : ObservableObject
     public string Current { get; }
     public string Original { get; }
     public string OriginalNote => Original.Length > 0
-        ? $"Original name: {Original}. It's kept inside the save, so you can reset it any time."
+        ? $"Original name: {Original}"
         : "";
-    public string CloudNote => "If this is your latest synced save, the old name may show as a cloud entry until you save again.";
+    public string CloudNote => "If this is your latest cloud save, the old name can show in the Load menu until you save again.";
 
     [ObservableProperty] private string _name;
     [ObservableProperty] private string _error = "";

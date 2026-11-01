@@ -14,12 +14,12 @@ public sealed partial class CleanupGroupViewModel : ObservableObject
         (Title, Description) = group switch
         {
             CleanupGroup.BeforeRestore => ("Before restore copies",
-                "In-between states, usually a save the way the app cleaned it. Cleaning that save again recreates them."),
+                "Copies taken just before a restore."),
             CleanupGroup.SaveGone => ("Backups of saves that no longer exist",
-                "The save folder was deleted, in game or by hand. These are the last copies of those saves."),
+                "Their saves are gone. These are the last copies."),
             CleanupGroup.OldVersion => ("Older saves from auto and quick slots",
-                "The game has since written a different save into that slot; these are copies of the saves that were there before."),
-            _ => ("Identical to the save as it is now", "The save itself is already this exact copy."),
+                "The game has since put a different save in that slot."),
+            _ => ("Identical to the save as it is now", "The save is already exactly this."),
         };
         Size = backups.Sum(b => b.SizeBytes);
         Items = backups.OrderBy(b => b.SaveFolderName, StringComparer.OrdinalIgnoreCase).ThenByDescending(b => b.Created)
@@ -56,12 +56,12 @@ public sealed partial class CleanupReviewViewModel : ObservableObject
 
     public IReadOnlyList<CleanupGroupViewModel> Groups { get; }
     public int Kept { get; }
-    public string KeptText => $"{Kept} backup{(Kept == 1 ? " is" : "s are")} kept and not listed: originals, manual backups and the ones Undo needs.";
+    public string KeptText => $"Not listed: {Kept} kept backup{(Kept == 1 ? "" : "s")} (originals, manual, undo).";
 
     public IReadOnlyList<BackupInfo> Chosen => Groups.Where(g => g.IsChecked).SelectMany(g => g.Backups).ToList();
     public long ChosenSize => Groups.Where(g => g.IsChecked).Sum(g => g.Size);
     public string ConfirmText => Chosen.Count == 1 ? "Delete 1 backup" : $"Delete {Chosen.Count} backups";
-    public string Summary => Chosen.Count == 0 ? "Nothing ticked" : $"Frees {Format.Size(ChosenSize)} · deleted backups can't be brought back";
+    public string Summary => Chosen.Count == 0 ? "Nothing ticked" : $"Frees {Format.Size(ChosenSize)}";
 
     public Task<bool> Result => _done.Task;
 

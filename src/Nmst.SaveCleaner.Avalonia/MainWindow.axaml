@@ -59,7 +59,8 @@
                     <TextBlock Classes="label" Text="BACKUPS" />
                     <TextBlock Text="{Binding BackupsSummary}" FontWeight="SemiBold" />
                     <Button Classes="link" Content="Clean up backups…" Command="{Binding CleanUpBackupsCommand}" Click="OnBackupsMenuItemClick"
-                            ToolTip.Tip="Review the backups that can go. Originals, manual backups and the ones Undo needs are always kept." />
+                            />
+                    <Button Classes="link" Content="{Binding TrashMenuText}" Command="{Binding OpenTrashCommand}" Click="OnBackupsMenuItemClick" />
                     <Button Classes="link" Content="Open backups folder" Command="{Binding OpenBackupsFolderCommand}" Click="OnBackupsMenuItemClick"
                             ToolTip.Tip="{Binding BackupsRoot}" />
                   </StackPanel>
@@ -114,9 +115,9 @@
           <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0" IsVisible="{Binding !IsBusy}"
                       Opacity="{Binding ResultVisible, Converter={StaticResource BoolToOpacity}}" IsHitTestVisible="{Binding ResultVisible}">
             <Button Classes="result" Classes.error="{Binding ResultIsError}" Content="{Binding ResultText}"
-                    Command="{Binding DismissResultCommand}" ToolTip.Tip="Click to dismiss · the Log has the details" VerticalAlignment="Center" />
+                    Command="{Binding DismissResultCommand}" ToolTip.Tip="Click to dismiss" VerticalAlignment="Center" />
             <Button Classes="link" Content="Undo" Margin="12,0,0,0" VerticalAlignment="Center" IsVisible="{Binding ResultCanUndo}"
-                    Command="{Binding UndoLastBatchCommand}" ToolTip.Tip="Review, then put these saves back as they were" />
+                    Command="{Binding UndoLastBatchCommand}" ToolTip.Tip="Undo this" />
           </StackPanel>
           <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="12" IsVisible="{Binding IsBusy}" VerticalAlignment="Center">
             <TextBlock Text="{Binding BusyText}" Foreground="{StaticResource PinkSoft}" FontSize="13" VerticalAlignment="Center" />
@@ -199,7 +200,7 @@
               <Button Classes="link" Content="Copy" Command="{Binding CopyLogCommand}" ToolTip.Tip="Copy the log text" />
               <Button Classes="link" Content="Clear" Command="{Binding ClearLogCommand}" ToolTip.Tip="Clears this view only; the log file keeps everything" />
               <Button Classes="link" Content="Log folder" Command="{Binding OpenLogFolderCommand}" ToolTip.Tip="Open the folder with the full log file" />
-              <Button Classes="link" Content="Pop out" Command="{Binding PopOutLogCommand}" ToolTip.Tip="Open the log in its own window (e.g. on another monitor)" />
+              <Button Classes="link" Content="Pop out" Command="{Binding PopOutLogCommand}" ToolTip.Tip="Open in its own window" />
               <Button Classes="link" Content="✕" Margin="0" Command="{Binding ToggleLogCommand}" ToolTip.Tip="Hide the log" />
             </StackPanel>
           </Grid>
@@ -239,9 +240,11 @@
               </WrapPanel>
               <!-- a filter (what the list shows), separate from the selection links above (what's ticked) -->
               <StackPanel Orientation="Horizontal">
-                <Button Classes="seg" Classes.on="{Binding !ShowStarredOnly}" Content="Show all" Command="{Binding ShowAllCommand}" />
-                <Button Classes="seg starFilter" Classes.on="{Binding ShowStarredOnly}" Content="{Binding StarredLabel}" Command="{Binding ShowStarredCommand}"
-                        ToolTip.Tip="Only show starred saves" />
+                <Button Classes="seg" Classes.on="{Binding IsFilterAll}" Content="Show all" Command="{Binding ShowAllCommand}" />
+                <Button Classes="seg starFilter" Classes.on="{Binding IsFilterStarred}" Content="{Binding StarredLabel}" Command="{Binding ShowStarredCommand}"
+                        ToolTip.Tip="Only starred saves" />
+                <Button Classes="seg" Classes.on="{Binding IsFilterRenamed}" Content="{Binding RenamedLabel}" Command="{Binding ShowRenamedCommand}"
+                        ToolTip.Tip="Only saves with a name of their own" />
               </StackPanel>
               <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Classes="faint" Text="{Binding CheckedCount, StringFormat='{}{0} selected'}" VerticalAlignment="Center" />
@@ -276,8 +279,8 @@
                             <TextBlock Text="{Binding LatestLine}" Classes="faint" />
                           </StackPanel>
                           <Panel Grid.Column="2" VerticalAlignment="Center">
-                            <TextBlock Text="▾" Foreground="{StaticResource Cyan}" IsVisible="{Binding IsExpanded}" FontSize="16" />
-                            <TextBlock Text="▸" Foreground="{StaticResource Faint}" IsVisible="{Binding !IsExpanded}" FontSize="16" />
+                            <TextBlock Text="▾" Foreground="{StaticResource Cyan}" IsVisible="{Binding IsOpen}" FontSize="16" />
+                            <TextBlock Text="▸" Foreground="{StaticResource Faint}" IsVisible="{Binding !IsOpen}" FontSize="16" />
                           </Panel>
                         </Grid>
                       </Button>
@@ -398,16 +401,19 @@
                   <StackPanel Orientation="Horizontal" Spacing="16">
                     <Button Classes="link" Content="Rename…" Margin="0"
                             Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RenameFocusedCommand}"
-                            ToolTip.Tip="Change the name the game's Load menu shows. Nothing inside the save changes." />
+                            ToolTip.Tip="Change the name shown in the game's Load menu" />
                     <Button Classes="link" Content="Keep this autosave…" Margin="0" IsVisible="{Binding IsInRotatingSlot}"
                             Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).KeepAutosaveCommand}"
-                            ToolTip.Tip="Give it a name of its own so the game can't overwrite it in this slot" />
+                            ToolTip.Tip="Move it out of the slot the game reuses" />
                     <Button Classes="link" Content="Open save folder" Margin="0"
                             Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).OpenFocusedFolderCommand}" />
+                    <Button Classes="link danger" Content="Delete…" Margin="0"
+                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).DeleteFocusedCommand}"
+                            ToolTip.Tip="Move to the trash" />
                   </StackPanel>
                   <Border Classes="hint" IsVisible="{Binding IsInRotatingSlot}" HorizontalAlignment="Left">
                     <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="{StaticResource Amber}"
-                               Text="The game overwrites this slot with later saves. Use Keep this autosave if you want this one to stay." />
+                               Text="The game reuses this slot for later saves." />
                   </Border>
                 </StackPanel>
               </Grid>
@@ -464,7 +470,7 @@
                     <TextBlock Classes="muted" Text="{Binding StateDetail}" />
                   </StackPanel>
                   <Button Grid.Column="1" Classes="primary" Content="Clean tag" IsVisible="{Binding IsTagged}" VerticalAlignment="Center"
-                          ToolTip.Tip="Backs the save up, then clears the modded tag in place"
+                          ToolTip.Tip="Backs up the save, then removes the tag"
                           Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).CleanFocusedCommand}" />
                 </Grid>
               </Border>
@@ -474,12 +480,11 @@
                 <Button Grid.Column="1" Classes="link" Margin="0,0,16,0" VerticalAlignment="Center"
                         Content="{Binding $parent[Window].((vm:MainViewModel)DataContext).UndoLastBatchText}"
                         IsVisible="{Binding $parent[Window].((vm:MainViewModel)DataContext).CanUndoLastBatch}"
-                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).UndoLastBatchCommand}"
-                        ToolTip.Tip="Review, then put the saves from the last clean or restore back as they were" />
+                        Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).UndoLastBatchCommand}" />
                 <Button Grid.Column="2" Content="Back up now" Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).BackupCheckedCommand}" />
               </Grid>
               <TextBlock Classes="faint" IsVisible="{Binding !HasBackups}" TextWrapping="Wrap"
-                         Text="No backups of this save yet. The app makes one automatically before every change." />
+                         Text="No backups yet." />
               <ItemsControl ItemsSource="{Binding $parent[Window].((vm:MainViewModel)DataContext).FocusedBackups}">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
@@ -492,13 +497,13 @@
                         <!-- kept no matter what: never offered by "Clean up backups" -->
                         <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsProtected}">
                           <Border Classes="badge original" IsVisible="{Binding IsOriginal}"
-                                  ToolTip.Tip="The save as the game wrote it, before the app cleaned it. Can't be recreated, so it's always kept.">
+                                  ToolTip.Tip="The save from before the app changed it. Always kept.">
                             <TextBlock Text="ORIGINAL" />
                           </Border>
-                          <Border Classes="badge manual" IsVisible="{Binding IsManual}" ToolTip.Tip="You made this one with Back up. Always kept.">
+                          <Border Classes="badge manual" IsVisible="{Binding IsManual}" ToolTip.Tip="Made with Back up. Always kept.">
                             <TextBlock Text="MANUAL" />
                           </Border>
-                          <Border Classes="badge undo" IsVisible="{Binding IsUndo}" ToolTip.Tip="Undo last batch needs this one. Kept until the next clean or restore.">
+                          <Border Classes="badge undo" IsVisible="{Binding IsUndo}" ToolTip.Tip="Needed to undo the last batch">
                             <TextBlock Text="UNDO" />
                           </Border>
                         </StackPanel>
@@ -568,7 +573,7 @@
                   <StackPanel>
                     <TextBlock Text="Clean modded tag" FontWeight="SemiBold" FontSize="17" />
                     <TextBlock Classes="muted" TextWrapping="Wrap">
-                      <Run Text="{Binding BatchToClean}" /><Run Text=" tagged saves, each backed up first (about " /><Run Text="{Binding BatchSize}" /><Run Text=" of backups). Saves that are already clean are skipped." />
+                      <Run Text="{Binding BatchToClean}" /><Run Text=" tagged saves, each backed up first." />
                     </TextBlock>
                   </StackPanel>
                   <Button Grid.Column="1" Classes="primary" Content="Run" VerticalAlignment="Center" Command="{Binding CleanCheckedCommand}" />
@@ -578,7 +583,7 @@
                 <Grid ColumnDefinitions="*,Auto">
                   <StackPanel>
                     <TextBlock Text="Back up" FontWeight="SemiBold" FontSize="17" />
-                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="Make a manual backup of every selected save. Restore from a save's own panel." />
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="Back up each selected save." />
                   </StackPanel>
                   <Button Grid.Column="1" Content="Run" VerticalAlignment="Center" Command="{Binding BackupCheckedCommand}" />
                 </Grid>
@@ -588,7 +593,7 @@
                   <StackPanel>
                     <TextBlock Text="Restore" FontWeight="SemiBold" FontSize="17" />
                     <TextBlock Classes="muted" TextWrapping="Wrap">
-                      <Run Text="{Binding BatchWithBackups}" /><Run Text=" of the selected saves have backups. Choose a rule (like undo cleaning), check the saves that have more than one restore point, then restore. Each save is backed up before it's replaced." />
+                      <Run Text="{Binding BatchWithBackups}" /><Run Text=" of the selected saves have backups." />
                     </TextBlock>
                   </StackPanel>
                   <Button Grid.Column="1" Content="Review…" VerticalAlignment="Center" Command="{Binding RestoreCheckedCommand}" />
@@ -598,12 +603,21 @@
                 <Grid ColumnDefinitions="*,Auto">
                   <StackPanel>
                     <TextBlock Text="Star" FontWeight="SemiBold" FontSize="17" />
-                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="Star the selected saves so they're easy to find with the Starred filter. Stars live in the app, not in the saves." />
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="Star or unstar the selected saves." />
                   </StackPanel>
                   <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <Button Content="★ Star" Command="{Binding StarCheckedCommand}" />
                     <Button Content="Unstar" Command="{Binding UnstarCheckedCommand}" />
                   </StackPanel>
+                </Grid>
+              </Border>
+              <Border Classes="card">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel>
+                    <TextBlock Text="Delete" FontWeight="SemiBold" FontSize="17" />
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="Move the selected saves to the trash." />
+                  </StackPanel>
+                  <Button Grid.Column="1" Classes="danger" Content="Delete…" VerticalAlignment="Center" Command="{Binding DeleteCheckedCommand}" />
                 </Grid>
               </Border>
               <Border Classes="card" IsVisible="{Binding CanUndoLastBatch}">
@@ -671,7 +685,7 @@
                       </StackPanel>
 
                       <StackPanel Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center" IsEnabled="{Binding !MusicMuted}">
-                        <Button Classes="icon" Command="{Binding PreviousTrackCommand}" ToolTip.Tip="Previous · restarts the track after 3 s">
+                        <Button Classes="icon" Command="{Binding PreviousTrackCommand}" ToolTip.Tip="Previous">
                           <Viewbox Width="18" Height="18"><Canvas Width="24" Height="24">
                             <Path Classes="glyph" Stroke="{StaticResource Cyan}" StrokeThickness="2" Data="M6 5 V19" />
                             <Path Classes="glyph" Stroke="{StaticResource Cyan}" Fill="{StaticResource Cyan}" Data="M19 5 L9 12 L19 19 Z" />
@@ -767,6 +781,53 @@
                 </ItemsControl>
               </Expander>
             </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+    </Border>
+
+    <!-- deleted saves: restore or delete for good. Esc closes -->
+    <Border IsVisible="{Binding IsTrashOpen}" Background="#cc040308">
+      <Border Classes="card" Width="760" Margin="0,48" HorizontalAlignment="Center" VerticalAlignment="Center"
+              BorderBrush="{StaticResource Pink}" Padding="26,22" Effect="drop-shadow(0 0 24 #66eb107e)" DataContext="{Binding TrashView}">
+        <DockPanel x:DataType="vm:TrashViewModel">
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="h1" FontSize="17" Text="DELETED SAVES" />
+              <TextBlock Classes="muted" Text="{Binding Summary}" />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="link" Content="Select all" VerticalAlignment="Bottom" Command="{Binding SelectAllCommand}" IsVisible="{Binding HasRows}" />
+          </Grid>
+          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,14,0,0">
+            <Button Classes="danger" Content="Empty trash" Command="{Binding EmptyCommand}" />
+            <Button Classes="danger" Content="Delete permanently" Command="{Binding DeleteForeverCommand}" />
+            <Button Classes="primary" Content="{Binding RestoreText}" Command="{Binding RestoreCommand}" />
+            <Button Content="Close" Command="{Binding CloseCommand}" />
+          </StackPanel>
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Rows}" Margin="0,0,14,0">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:TrashRowViewModel">
+                  <Border BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="0,8">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                      <CheckBox IsChecked="{Binding IsChecked}" VerticalAlignment="Center" MinWidth="0" />
+                      <Panel Grid.Column="1" Width="96" Height="54" Margin="6,0,0,0" VerticalAlignment="Center">
+                        <Border CornerRadius="4" ClipToBounds="True" Background="{StaticResource CardHi}">
+                          <Image Source="{Binding ScreenshotPath, Converter={StaticResource PathToBitmap}}" Stretch="UniformToFill" />
+                        </Border>
+                        <Border CornerRadius="4" BorderBrush="{StaticResource Line}" BorderThickness="1" IsHitTestVisible="False" />
+                      </Panel>
+                      <StackPanel Grid.Column="2" Margin="12,0,12,0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Quest}" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Line}" Classes="faint" TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="3" Text="{Binding DeletedLine}" Classes="faint" VerticalAlignment="Center" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
           </ScrollViewer>
         </DockPanel>
       </Border>

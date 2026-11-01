@@ -84,7 +84,9 @@ public class TimestampTests
 
         var b = backups.Create(SaveScanner.Read(save), "Manual");
         Directory.Delete(save, true);
+        Directory.SetLastWriteTimeUtc(t.Saves, Written);
         backups.Restore(b, t.Saves);
         AssertOldDates(save);
+        Assert.Equal(Written, Directory.GetLastWriteTimeUtc(t.Saves));   // recreating the folder doesn't move the saves folder's date
     }
 }

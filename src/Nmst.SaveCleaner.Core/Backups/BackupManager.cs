@@ -46,7 +46,7 @@ public sealed class BackupManager(string root, ActivityLog log)
 
     public string Root => root;
 
-    /// <summary>FolderCreatedUtc/FolderWrittenUtc are the save folder's own dates (absent in backups from before 1.0.1).</summary>
+    /// <summary>FolderCreatedUtc/FolderWrittenUtc are the save folder's own dates (absent in backups from before 1.1.0).</summary>
     private sealed record BackupJson(string Reason, DateTime CreatedUtc, string Source, string App,
         DateTime? FolderCreatedUtc = null, DateTime? FolderWrittenUtc = null, string? BatchId = null);
 
@@ -147,6 +147,8 @@ public sealed class BackupManager(string root, ActivityLog log)
     public BackupInfo? Restore(BackupInfo backup, string savesFolder, bool backupCurrent = true, string? batchId = null)
     {
         var target = Path.Combine(savesFolder, backup.SaveFolderName);
+        // recreating a deleted save adds a folder to the saves folder, which moves its modified date: put it back after
+        var savesFolderDates = Directory.Exists(savesFolder) ? FileDates.Of(savesFolder) : (FileDates?)null;
         BackupInfo? before = null;
         if (backupCurrent && Directory.Exists(target) && Directory.GetFiles(target).Length > 0)
             before = Create(SaveScanner.Read(target), "Before restore", batchId);
@@ -175,6 +177,7 @@ public sealed class BackupManager(string root, ActivityLog log)
             FileDates.Copy(Path.Combine(backup.FolderPath, Path.GetFileName(dst)), dst);
         }
         if (backup.FolderDates is { } folderDates) folderDates.ApplyTo(target);
+        savesFolderDates?.ApplyTo(savesFolder);
         log.Ok($"{backup.SaveFolderName}: restored from {backup.Id} ({backup.Reason.ToLowerInvariant()})");
         return before;
     }

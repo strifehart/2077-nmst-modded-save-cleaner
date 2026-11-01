@@ -73,9 +73,9 @@ public sealed partial class RestoreReviewViewModel : ObservableObject
 
     public IReadOnlyList<RuleChoice> Rules { get; } =
     [
-        new(RestoreRule.UndoCleaning, "Undo cleaning · each save's latest Before clean backup"),
+        new(RestoreRule.UndoCleaning, "Undo cleaning (latest Before clean)"),
         new(RestoreRule.LatestManual, "Latest manual backup"),
-        new(RestoreRule.Newest, "Newest backup of any kind (can be a Before restore copy)"),
+        new(RestoreRule.Newest, "Newest backup of any kind"),
     ];
 
     [ObservableProperty] private RestoreRule _rule;
@@ -97,8 +97,7 @@ public sealed partial class RestoreReviewViewModel : ObservableObject
 
     public int RestoreCount => NeedsLook.Concat(Ready).Count(r => r.IsIncluded);
     public string ConfirmText => RestoreCount == 1 ? "Restore 1 save" : $"Restore {RestoreCount} saves";
-    public string Summary => $"{RestoreCount} to restore · {NeedsLook.Concat(Ready).Count(r => !r.IsIncluded) + Skipped.Count} left as they are"
-                             + " · each save is backed up before it's replaced";
+    public string Summary => $"{RestoreCount} to restore · {NeedsLook.Concat(Ready).Count(r => !r.IsIncluded) + Skipped.Count} left as they are";
 
     /// <summary>The rows the user kept, with the backup each one gets.</summary>
     public IReadOnlyList<(string Name, BackupInfo Backup)> Chosen =>
@@ -124,7 +123,7 @@ public sealed partial class RestoreReviewViewModel : ObservableObject
             var selected = e.ChangedSinceBatch
                 ? options.First(o => o.Backup is null)
                 : options.First(o => o.Backup?.Id == e.Chosen.Id);
-            string note = e.ChangedSinceBatch ? "changed since the batch (the game saved over it); restoring would lose that"
+            string note = e.ChangedSinceBatch ? "changed since: the game saved over it"
                 : e.NewerExists ? "a newer backup exists"
                 : "";
             var row = new RestoreRowViewModel(e.SaveFolderName, options, selected, note, Refresh);

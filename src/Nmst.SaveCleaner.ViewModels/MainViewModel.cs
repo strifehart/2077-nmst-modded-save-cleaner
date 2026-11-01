@@ -22,6 +22,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly TagCleaner _cleaner;
     private readonly BatchLog _batches;
     private readonly SaveNotes _notes;
+    private readonly SaveTrash _trash;
     private List<SaveItemViewModel> _all = [];
     private List<PlaythroughGroupViewModel> _groups = [];
     private CancellationTokenSource? _flagScan;
@@ -51,7 +52,9 @@ public sealed partial class MainViewModel : ObservableObject
         _backups = new BackupManager(backupsRoot, Log);
         _cleaner = new TagCleaner(_backups, Log);
         _batches = new BatchLog(Path.Combine(backupsRoot, "batches.json"));
-        _notes = new SaveNotes(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(backupsRoot))!, "saves.json"));
+        var dataRoot = Path.GetDirectoryName(Path.GetFullPath(backupsRoot))!;
+        _notes = new SaveNotes(Path.Combine(dataRoot, "saves.json"));
+        _trash = new SaveTrash(Path.Combine(dataRoot, "Trash"), Log);
 
         // a folder picked with "Change folder" wins over the detected one, as long as it still exists
         _defaultSavesFolder = savesFolder;
@@ -111,7 +114,7 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _statusLine = "";
     [ObservableProperty] private bool _isLoading;
 
-    partial void OnSearchTextChanged(string value) => RebuildRows();
+    partial void OnSearchTextChanged(string value) { OpenFilteredGroups(); RebuildRows(); }
 
     [RelayCommand]
     private async Task ReloadAsync()
@@ -194,40 +197,59 @@ public sealed partial class MainViewModel : ObservableObject
     private void RebuildRows()
     {
         var q = SearchText.Trim();
-        bool filtering = q.Length > 0 || ShowStarredOnly;
+        bool filtering = q.Length > 0 || Filter != ListFilter.All;
+        bool Shown(SaveItemViewModel i) => Filter switch { ListFilter.Starred => i.IsStarred, ListFilter.Renamed => i.IsRenamed, _ => true };
         var rows = new List<object>();
         foreach (var g in _groups)
         {
-            var visible = g.Items.Where(i => i.Matches(q) && (!ShowStarredOnly || i.IsStarred)).ToList();
+            var visible = g.Items.Where(i => i.Matches(q) && Shown(i)).ToList();
             g.VisibleCount = visible.Count;
+            g.IsFiltering = filtering;
             if (filtering && visible.Count == 0) continue;
             rows.Add(g);
-            if (g.IsExpanded || filtering) rows.AddRange(visible);
+            if (g.IsOpen) rows.AddRange(visible);
         }
         Rows = new ObservableCollection<object>(rows);
         NoMatches = filtering && rows.Count == 0;
-        NoMatchesText = ShowStarredOnly && q.Length == 0
-            ? "No starred saves yet. Click the star on a save to keep it here."
-            : ShowStarredOnly ? "No starred saves match your search." : "No saves, quests or places match your search.";
+        string kind = Filter == ListFilter.Starred ? "starred" : "renamed";
+        NoMatchesText = Filter == ListFilter.All ? "No saves, quests or places match your search."
+            : q.Length == 0 ? $"No {kind} saves yet." : $"No {kind} saves match your search.";
         StarredCount = _all.Count(i => i.IsStarred);
+        RenamedCount = _all.Count(i => i.IsRenamed);
     }
 
     [ObservableProperty] private bool _noMatches;
     [ObservableProperty] private string _noMatchesText = "";
 
-    // ---------- stars (saves.json in the app's folder, keyed by playthrough + in-game save time) ----------
+    // ---------- list filter (what the list shows, separate from ticking saves) + stars ----------
 
-    /// <summary>Show only starred saves in the list (a filter, separate from ticking saves).</summary>
-    [ObservableProperty] private bool _showStarredOnly;
+    public enum ListFilter { All, Starred, Renamed }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsFilterAll), nameof(IsFilterStarred), nameof(IsFilterRenamed), nameof(ShowStarredOnly))]
+    private ListFilter _filter;
+    public bool IsFilterAll => Filter == ListFilter.All;
+    public bool IsFilterStarred => Filter == ListFilter.Starred;
+    public bool IsFilterRenamed => Filter == ListFilter.Renamed;
+    public bool ShowStarredOnly { get => IsFilterStarred; set => Filter = value ? ListFilter.Starred : ListFilter.All; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StarredLabel))]
     private int _starredCount;
     public string StarredLabel => $"★ Starred {StarredCount}";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RenamedLabel))]
+    private int _renamedCount;
+    public string RenamedLabel => $"Renamed {RenamedCount}";
 
-    partial void OnShowStarredOnlyChanged(bool value) => RebuildRows();
+    partial void OnFilterChanged(ListFilter value) { OpenFilteredGroups(); RebuildRows(); }
 
-    [RelayCommand] private void ShowAll() => ShowStarredOnly = false;
-    [RelayCommand] private void ShowStarred() => ShowStarredOnly = true;
+    /// <summary>A new search or filter starts with every matching group open (they can be closed again).</summary>
+    private void OpenFilteredGroups() { foreach (var g in _groups) g.IsExpandedInFilter = true; }
+
+    [RelayCommand] private void ShowAll() => Filter = ListFilter.All;
+    [RelayCommand] private void ShowStarred() => Filter = ListFilter.Starred;
+    [RelayCommand] private void ShowRenamed() => Filter = ListFilter.Renamed;
 
     [RelayCommand]
     private void ToggleStar(SaveItemViewModel? item)
@@ -251,7 +273,7 @@ public sealed partial class MainViewModel : ObservableObject
             ShowResult("Couldn't save stars · see the log", true);
         }
         if (items.Count > 1) ShowResult($"{(starred ? "Starred" : "Unstarred")} {items.Count} saves", false);
-        if (ShowStarredOnly && !starred) RebuildRows();
+        if (IsFilterStarred && !starred) RebuildRows();
         else StarredCount = _all.Count(i => i.IsStarred);
     }
 
@@ -267,7 +289,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (Focused is not { } item || IsBusy || IsRenameOpen) return;
         await AskAndRenameAsync(item, "Rename save",
-            "The new name is what the game's Load menu shows. Nothing inside the save changes, and its file and folder dates stay as they are.",
+            "This is the name the game's Load menu shows.",
             item.Name);
     }
 
@@ -278,7 +300,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (Focused is not { } item || IsBusy || IsRenameOpen) return;
         var suggestion = $"Kept {item.Name} {item.Info.Timestamp:yyyy-MM-dd HH.mm}";
         await AskAndRenameAsync(item, "Keep this autosave",
-            $"The game reuses {item.Name} for later saves. Giving it a name of its own moves it out of that slot so it's never overwritten. Nothing inside the save changes.",
+            $"With a name of its own, the game can't overwrite it in the {item.Name} slot.",
             suggestion);
     }
 
@@ -330,8 +352,8 @@ public sealed partial class MainViewModel : ObservableObject
         await ReloadAsync();
         if (_all.FirstOrDefault(i => i.Name == newName) is { } renamed)
         {
-            if (_groups.FirstOrDefault(g => g.Items.Contains(renamed)) is { } g) g.IsExpanded = true;
-            else if (group is not null && _groups.FirstOrDefault(x => x.Id == group) is { } g2) g2.IsExpanded = true;
+            if (_groups.FirstOrDefault(g => g.Items.Contains(renamed)) is { } g) g.IsOpen = true;
+            else if (group is not null && _groups.FirstOrDefault(x => x.Id == group) is { } g2) g2.IsOpen = true;
             RebuildRows();
             Focused = renamed;
         }
@@ -396,8 +418,8 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand] private void OpenBackupsFolder() { Directory.CreateDirectory(_backups.Root); _platform.OpenFolder(_backups.Root); }
     [RelayCommand] private void OpenFocusedFolder() { if (Focused is not null) _platform.OpenFolder(Focused.Info.FolderPath); }
 
-    [RelayCommand] private void ExpandAll() { foreach (var g in _groups) g.IsExpanded = true; RebuildRows(); }
-    [RelayCommand] private void CollapseAll() { foreach (var g in _groups) g.IsExpanded = false; RebuildRows(); }
+    [RelayCommand] private void ExpandAll() { foreach (var g in _groups) g.IsOpen = true; RebuildRows(); }
+    [RelayCommand] private void CollapseAll() { foreach (var g in _groups) g.IsOpen = false; RebuildRows(); }
 
     // ---------- selection ----------
 
@@ -540,7 +562,7 @@ public sealed partial class MainViewModel : ObservableObject
         Log.Warn("Cyberpunk 2077 is running; nothing was changed");
         ShowResult("Close the game first: nothing was changed", true);
         await _platform.AlertAsync("Close the game first",
-            "Cyberpunk 2077 is running. The game caches its save list and can overwrite saves, so the app doesn't change saves while it runs.");
+            "Close Cyberpunk 2077, then try again.");
         return false;
     }
 
@@ -571,7 +593,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
         if (!await CanWriteAsync()) return;
         if (todo.Count > 1 && !await _platform.ConfirmAsync("Clean modded tag",
-                $"Clean {todo.Count} saves? Each one is backed up first (about {Format.Size(todo.Sum(t => t.Info.SizeBytes))} of backups)."
+                $"Clean {todo.Count} saves? Each is backed up first."
                 + (skip > 0 ? $"\n\n{skip} already clean save{(skip == 1 ? " is" : "s are")} skipped." : ""), "Clean"))
             return;
 
@@ -660,7 +682,7 @@ public sealed partial class MainViewModel : ObservableObject
             ? $"\n\nCareful: this backup was taken from {backup.Backup.SourceFolder}, a different saves folder. It's a save with the same name, not necessarily the same save."
             : "";
         if (!await _platform.ConfirmAsync("Restore from backup",
-                $"Replace {Focused.Name} with the backup from {Format.DateTime(backup.Backup.Created)} ({backup.Backup.Reason.ToLowerInvariant()})?\n\nThe current save is backed up first, so you can undo this.{otherFolder}",
+                $"Replace {Focused.Name} with the backup from {Format.DateTime(backup.Backup.Created)} ({backup.Backup.Reason.ToLowerInvariant()})? The current save is backed up first.{otherFolder}",
                 "Restore"))
             return;
         BeginBusy("Restoring " + Focused.Name);
@@ -696,9 +718,8 @@ public sealed partial class MainViewModel : ObservableObject
         var b = backup.Backup;
         // protected backups can still be deleted by hand, with a warning saying what's lost
         string warning = backup.IsOriginal
-            ? $"\n\nThis is the original of {b.SaveFolderName}: the save as the game wrote it, before the app cleaned it. It can't be recreated."
-            : backup.IsUndo ? "\n\nUndo last batch needs this backup; without it, this save can't be undone."
-            : backup.IsManual ? "\n\nYou made this backup yourself." : "";
+            ? $"\n\nThis is the original of {b.SaveFolderName}, from before the app changed it. It can't be recreated."
+            : backup.IsUndo ? "\n\nUndo last batch needs it." : "";
         if (!await _platform.ConfirmAsync(backup.IsProtected ? "Delete a kept backup" : "Delete backup",
                 $"Permanently delete the {b.Reason.ToLowerInvariant()} backup of {b.SaveFolderName} from {Format.DateTime(b.Created)}? This can't be undone.{warning}",
                 "Delete"))
@@ -714,6 +735,117 @@ public sealed partial class MainViewModel : ObservableObject
         _ = UpdateBackupsSummaryAsync();
     }
 
+    // ---------- delete (to the app's trash) + the trash view ----------
+
+    [RelayCommand]
+    private async Task DeleteFocusedAsync()
+    {
+        if (Focused is not null) await DeleteSavesAsync([Focused]);
+    }
+
+    [RelayCommand]
+    private async Task DeleteCheckedAsync() => await DeleteSavesAsync(_all.Where(i => i.IsChecked).ToList());
+
+    private async Task DeleteSavesAsync(List<SaveItemViewModel> items)
+    {
+        if (items.Count == 0 || IsBusy || !await CanWriteAsync()) return;
+        int ponr = items.Count(i => i.Info.Metadata?.IsPointOfNoReturn == true);
+        string what = items.Count == 1 ? items[0].Name : $"{items.Count} saves";
+        if (!await _platform.ConfirmAsync(items.Count == 1 ? "Delete save" : "Delete saves",
+                $"Move {what} to the trash? Backups → Deleted saves has {(items.Count == 1 ? "it" : "them")} if you change your mind."
+                + (ponr > 0 ? $"\n\n{(items.Count == 1 ? "This is a point-of-no-return save" : $"{ponr} of these are point-of-no-return saves")}: the game's ending saves go back to {(ponr == 1 ? "it" : "them")}." : "")
+                + "\n\nCloud sync removes deleted saves from the cloud too.",
+                "Delete"))
+            return;
+
+        _flagScan?.Cancel();   // its reads keep files open, which blocks moving a folder
+        BeginBusy("Deleting…");
+        int ok = 0, failed = 0;
+        try
+        {
+            for (int n = 0; n < items.Count; n++)
+            {
+                var item = items[n];
+                BusyText = $"Deleting {n + 1}/{items.Count} · {item.Name}";
+                Progress = (double)n / items.Count;
+                try { await Task.Run(() => _trash.Delete(item.Info)); ok++; }
+                catch (Exception e) { failed++; Log.Error($"{item.Name}: couldn't delete · {e.Message}"); }
+            }
+        }
+        finally { await EndBusyAsync(); }
+        Log.Done($"{ok} moved to the trash, {failed} failed");
+        await ReloadAsync();
+        ShowResult(failed > 0 ? $"{failed} couldn't be deleted, {ok} moved to the trash · see the log"
+            : ok == 1 ? $"{items[0].Name} moved to the trash" : $"{ok} saves moved to the trash", failed > 0);
+    }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsTrashOpen))]
+    private TrashViewModel? _trashView;
+    public bool IsTrashOpen => TrashView is not null;
+
+    /// <summary>"Deleted saves (3)" in the Backups menu.</summary>
+    [ObservableProperty] private string _trashMenuText = "Deleted saves";
+
+    [RelayCommand]
+    private async Task OpenTrashAsync()
+    {
+        if (IsBusy || IsTrashOpen) return;
+        var items = await Task.Run(_trash.List);
+        TrashView = new TrashViewModel(items, _names, RestoreFromTrashAsync, DeleteForeverAsync, () => TrashView = null);
+    }
+
+    private async Task RefreshTrashAsync()
+    {
+        var items = await Task.Run(_trash.List);
+        TrashView?.Load(items);
+        TrashMenuText = items.Count == 0 ? "Deleted saves" : $"Deleted saves ({items.Count})";
+    }
+
+    private async Task RestoreFromTrashAsync(IReadOnlyList<TrashItem> items)
+    {
+        if (items.Count == 0 || !await CanWriteAsync()) return;
+        BeginBusy("Restoring…");
+        int ok = 0, failed = 0;
+        var renamed = new List<string>();
+        try
+        {
+            foreach (var t in items)
+            {
+                try
+                {
+                    var to = await Task.Run(() => _trash.Restore(t, SavesFolder));
+                    ok++;
+                    if (Path.GetFileName(to) != t.SaveName) renamed.Add(Path.GetFileName(to));
+                }
+                catch (Exception e) { failed++; Log.Error($"{t.SaveName}: couldn't restore from the trash · {e.Message}"); }
+            }
+        }
+        finally { await EndBusyAsync(); }
+        await RefreshTrashAsync();
+        await ReloadAsync();
+        ShowResult(failed > 0 ? $"{failed} couldn't be restored, {ok} restored · see the log"
+            : (ok == 1 ? $"{items[0].SaveName} restored" : $"{ok} saves restored")
+              + (renamed.Count > 0 ? $" · name taken, so: {string.Join(", ", renamed)}" : ""), failed > 0);
+    }
+
+    private async Task DeleteForeverAsync(IReadOnlyList<TrashItem> items)
+    {
+        if (items.Count == 0 || IsBusy) return;
+        if (!await _platform.ConfirmAsync("Delete permanently",
+                $"Permanently delete {(items.Count == 1 ? items[0].SaveName : $"{items.Count} saves")} ({Format.Size(items.Sum(i => i.SizeBytes))})? This can't be undone.",
+                "Delete"))
+            return;
+        int ok = 0;
+        foreach (var t in items)
+        {
+            try { await Task.Run(() => _trash.DeleteForever(t)); ok++; }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Log.Error($"{t.SaveName}: couldn't delete · {e.Message}"); }
+        }
+        await RefreshTrashAsync();
+        ShowResult($"{ok} save{(ok == 1 ? "" : "s")} permanently deleted", ok < items.Count);
+    }
+
     // ---------- backups menu + clean up backups ----------
 
     /// <summary>"77 MB in 26 backups", refreshed when the Backups menu opens.</summary>
@@ -721,8 +853,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     public async Task UpdateBackupsSummaryAsync()
     {
-        var (size, count) = await Task.Run(() => (_backups.TotalSize(), _backups.Counts().Values.Sum()));
+        var (size, count, trashed) = await Task.Run(() => (_backups.TotalSize(), _backups.Counts().Values.Sum(), _trash.List().Count));
         BackupsSummary = count == 0 ? "No backups yet" : $"{Format.Size(size)} in {count} backup{(count == 1 ? "" : "s")}";
+        TrashMenuText = trashed == 0 ? "Deleted saves" : $"Deleted saves ({trashed})";
     }
 
     [ObservableProperty]
@@ -739,7 +872,7 @@ public sealed partial class MainViewModel : ObservableObject
             (BackupCatalog.Candidates(_backups, SavesFolder, undo), _backups.Counts().Values.Sum()));
         if (candidates.Count == 0)
         {
-            ShowResult(total == 0 ? "No backups yet" : "Nothing to clean up: every backup is kept for a reason", false);
+            ShowResult(total == 0 ? "No backups yet" : "Nothing to clean up", false);
             return;
         }
         var review = new CleanupReviewViewModel(candidates, total - candidates.Count);
@@ -832,8 +965,8 @@ public sealed partial class MainViewModel : ObservableObject
         int without = CheckedCount - targets.Count;
         await ReviewAndRestoreAsync(new RestoreReviewViewModel(
             "Restore selected saves",
-            $"Pick which restore point the {targets.Count} selected save{(targets.Count == 1 ? "" : "s")} with backups go back to."
-            + (without > 0 ? $" {without} selected save{(without == 1 ? " has" : "s have")} no backups and {(without == 1 ? "is" : "are")} left out." : ""),
+            $"{targets.Count} selected save{(targets.Count == 1 ? " has" : "s have")} backups."
+            + (without > 0 ? $" {without} {(without == 1 ? "has" : "have")} none and {(without == 1 ? "is" : "are")} left out." : ""),
             plan, OptionsFor, Plan));
     }
 
@@ -846,8 +979,7 @@ public sealed partial class MainViewModel : ObservableObject
         string what = batch.Kind == BatchKind.Clean ? "clean" : "restore";
         await ReviewAndRestoreAsync(new RestoreReviewViewModel(
             "Undo the last " + what,
-            $"Puts the {batch.Saves.Count} save{(batch.Saves.Count == 1 ? "" : "s")} from the {what} on {Format.DateTime(batch.TimeUtc.ToLocalTime())} back the way "
-            + "they were before it. Saves the game has written to since are left out unless you pick them.",
+            $"Puts {batch.Saves.Count} save{(batch.Saves.Count == 1 ? "" : "s")} back as {(batch.Saves.Count == 1 ? "it was" : "they were")} before the {what} on {Format.DateTime(batch.TimeUtc.ToLocalTime())}.",
             plan, OptionsFor, null));
     }
 

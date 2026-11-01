@@ -17,6 +17,9 @@ public static partial class SaveRenamer
     [GeneratedRegex(@"^(AutoSave|QuickSave|ManualSave|PointOfNoReturnSave|EndGameSave)-\d+$", RegexOptions.IgnoreCase)]
     private static partial Regex GamePattern();
 
+    /// <summary>A name in the game's own pattern (ManualSave-12, AutoSave-3…).</summary>
+    public static bool IsGameName(string name) => GamePattern().IsMatch(name);
+
     private static readonly string[] Reserved = ["CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
         "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"];
 

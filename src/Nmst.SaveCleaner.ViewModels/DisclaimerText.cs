@@ -27,5 +27,5 @@ public static class DisclaimerText
 
     public const string Accept = "I understand the risks and accept them";
 
-    public const string EmptyState = "Pick a save on the left to see whether it's tagged as modded and clean it, or tick several to clean them in one go.";
+    public const string EmptyState = "Pick a save on the left, or tick several to work on them together.";
 }

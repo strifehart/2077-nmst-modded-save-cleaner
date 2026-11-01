@@ -31,7 +31,27 @@ public sealed partial class PlaythroughGroupViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CountLabel))]
     private int _visibleCount;
 
-    [ObservableProperty] private bool _isExpanded;
+    /// <summary>Open or closed in the normal list.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOpen))]
+    private bool _isExpanded;
+
+    /// <summary>Open or closed while a search or filter is on; reset to open each time the search or filter changes.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOpen))]
+    private bool _isExpandedInFilter = true;
+
+    /// <summary>Set by the list: a search or filter is on, so the filtered state applies.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOpen))]
+    private bool _isFiltering;
+
+    /// <summary>What the list shows right now.</summary>
+    public bool IsOpen
+    {
+        get => IsFiltering ? IsExpandedInFilter : IsExpanded;
+        set { if (IsFiltering) IsExpandedInFilter = value; else IsExpanded = value; }
+    }
 
     public string Title => Playthrough.IsUngrouped ? "Ungrouped" : Playthrough.LifePathLabel(Playthrough.LifePath);
     public string CountLabel => VisibleCount == Items.Count ? $"{Items.Count}" : $"{VisibleCount}/{Items.Count}";
@@ -59,7 +79,7 @@ public sealed partial class PlaythroughGroupViewModel : ObservableObject
     [RelayCommand]
     private void ToggleExpanded()
     {
-        IsExpanded = !IsExpanded;
+        IsOpen = !IsOpen;
         _changed();
     }
 }
