@@ -18,6 +18,9 @@ public sealed record BackupInfo(string FolderPath, string SaveFolderName, DateTi
 
     private static string Normalise(string p) => Path.GetFullPath(p).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
+    /// <summary>The save folder's own dates when the backup was taken; null for backups made before these were kept.</summary>
+    public FileDates? FolderDates { get; init; }
+
     public string Id => Path.GetFileName(FolderPath);
     public ModdedState State => Metadata is null ? ModdedState.Unknown : SaveInfo.Combine(Metadata.IsModded, StickyFlag);
 }
@@ -34,9 +37,15 @@ public sealed class BackupManager(string root, ActivityLog log)
 
     public string Root => root;
 
-    private sealed record BackupJson(string Reason, DateTime CreatedUtc, string Source, string App);
+    /// <summary>FolderCreatedUtc/FolderWrittenUtc are the save folder's own dates (absent in backups from before 1.0.1).</summary>
+    private sealed record BackupJson(string Reason, DateTime CreatedUtc, string Source, string App,
+        DateTime? FolderCreatedUtc = null, DateTime? FolderWrittenUtc = null);
 
-    /// <summary>Copies every file of the save into a new backup and verifies the copy byte for byte.</summary>
+    /// <summary>
+    /// Copies every file of the save into a new backup and verifies the copy byte for byte. Each copy keeps the
+    /// original's created/modified dates, and the save folder's dates go into backup.json, so a restore can put the
+    /// save back exactly as it was.
+    /// </summary>
     public BackupInfo Create(SaveInfo save, string reason)
     {
         var created = DateTime.Now;
@@ -52,8 +61,10 @@ public sealed class BackupManager(string root, ActivityLog log)
                 var dst = Path.Combine(partial, Path.GetFileName(src));
                 File.Copy(src, dst);
                 if (!FilesEqual(src, dst)) throw new IOException($"backup copy of {Path.GetFileName(src)} doesn't match the original");
+                FileDates.Copy(src, dst);
             }
-            var info = new BackupJson(reason, created.ToUniversalTime(), save.FolderPath, AppInfo.Name);
+            var folder = FileDates.Of(save.FolderPath);
+            var info = new BackupJson(reason, created.ToUniversalTime(), save.FolderPath, AppInfo.Name, folder.CreatedUtc, folder.WrittenUtc);
             File.WriteAllText(Path.Combine(partial, InfoFile), JsonSerializer.Serialize(info, new JsonSerializerOptions { WriteIndented = true }));
             Directory.Move(partial, dir);
         }
@@ -140,7 +151,12 @@ public sealed class BackupManager(string root, ActivityLog log)
             foreach (var (tmp, _) in staged) TryDeleteFile(tmp);
             throw;
         }
-        foreach (var (tmp, dst) in staged) File.Move(tmp, dst, true);
+        foreach (var (tmp, dst) in staged)
+        {
+            File.Move(tmp, dst, true);
+            FileDates.Copy(Path.Combine(backup.FolderPath, Path.GetFileName(dst)), dst);
+        }
+        if (backup.FolderDates is { } folderDates) folderDates.ApplyTo(target);
         log.Ok($"{backup.SaveFolderName}: restored from {backup.Id} ({backup.Reason.ToLowerInvariant()})");
     }
 
@@ -164,7 +180,9 @@ public sealed class BackupManager(string root, ActivityLog log)
             try { meta = SaveMetadata.Load(Path.Combine(dir, SaveInfo.MetadataFile)); } catch { }
             try { sticky = ModdedFlag.ReadSticky(Path.Combine(dir, SaveInfo.SavFileName)); } catch { }
             long size = Directory.GetFiles(dir).Where(f => Path.GetFileName(f) != InfoFile).Sum(f => new FileInfo(f).Length);
-            return new BackupInfo(dir, saveFolderName, json.CreatedUtc.ToLocalTime(), json.Reason, meta, sticky, size, json.Source ?? "");
+            FileDates? folderDates = json.FolderCreatedUtc is { } c && json.FolderWrittenUtc is { } w ? new FileDates(c, w) : null;
+            return new BackupInfo(dir, saveFolderName, json.CreatedUtc.ToLocalTime(), json.Reason, meta, sticky, size, json.Source ?? "")
+                { FolderDates = folderDates };
         }
         catch { return null; }
     }

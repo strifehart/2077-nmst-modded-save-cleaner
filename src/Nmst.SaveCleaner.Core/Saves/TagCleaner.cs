@@ -37,8 +37,11 @@ public sealed partial class TagCleaner(BackupManager backups, ActivityLog log)
             var backup = backups.Create(save, "Before clean");
             try
             {
+                // the edits replace files through .tmp copies; put the original dates back afterwards
+                var folderDates = FileDates.Of(saveFolder);
                 if (sticky == true) WriteSav(save, sav);
                 if (json) WriteMetadata(save);
+                folderDates.ApplyTo(saveFolder);
 
                 var after = SaveScanner.Read(saveFolder);
                 bool? stickyAfter = ModdedFlag.ReadSticky(after.SavPath);
@@ -78,9 +81,11 @@ public sealed partial class TagCleaner(BackupManager backups, ActivityLog log)
             throw new InvalidDataException("rewritten sav.dat differs beyond the flag byte");
         if (check.Nodes.Count != sav.Nodes.Count) throw new InvalidDataException("rewritten sav.dat has a different node table");
 
+        var dates = FileDates.Of(save.SavPath);
         var tmp = save.SavPath + ".tmp";
         File.WriteAllBytes(tmp, bytes);
         File.Move(tmp, save.SavPath, true);
+        dates.ApplyTo(save.SavPath);
     }
 
     private static void WriteMetadata(SaveInfo save)
@@ -88,9 +93,11 @@ public sealed partial class TagCleaner(BackupManager backups, ActivityLog log)
         var text = File.ReadAllText(save.MetadataPath);
         var updated = IsModdedTrue().Replace(text, @"""isModded"": false", 1);
         if (SaveMetadata.Parse(updated).IsModded) throw new InvalidDataException("couldn't clear isModded in metadata.9.json");
+        var dates = FileDates.Of(save.MetadataPath);
         var tmp = save.MetadataPath + ".tmp";
         File.WriteAllText(tmp, updated);
         File.Move(tmp, save.MetadataPath, true);
+        dates.ApplyTo(save.MetadataPath);
     }
 
     private CleanResult Fail(string name, string reason, string? note)
