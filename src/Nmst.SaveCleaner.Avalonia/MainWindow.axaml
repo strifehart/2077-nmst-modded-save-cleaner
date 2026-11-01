@@ -84,14 +84,6 @@
                 </Border>
               </StackPanel>
             </Button>
-            <Button Command="{Binding ToggleLogCommand}">
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <TextBlock Text="Log" />
-                <Border Background="#2200e5ff" CornerRadius="3" Padding="5,0">
-                  <TextBlock Text="{Binding LogCount}" FontSize="12" VerticalAlignment="Center" />
-                </Border>
-              </StackPanel>
-            </Button>
           </StackPanel>
 
           <!-- window buttons; hidden where the platform keeps its own title bar (some Linux window managers) -->
@@ -255,16 +247,18 @@
                 <Button Classes="link" Content="Tagged" Command="{Binding SelectTaggedCommand}" />
                 <Button Classes="link" Content="Invert" Command="{Binding InvertSelectionCommand}" />
               </WrapPanel>
-              <!-- a filter (what the list shows), separate from the selection links above (what's ticked); an even 2 x 2 grid so every button is the same size -->
-              <UniformGrid Columns="2" Margin="0,0,-4,0">
-                <Button Classes="seg" Classes.on="{Binding IsFilterAll}" Content="Show all" Command="{Binding ShowAllCommand}" />
-                <Button Classes="seg starFilter" Classes.on="{Binding IsFilterStarred}" Content="{Binding StarredLabel}" Command="{Binding ShowStarredCommand}"
-                        ToolTip.Tip="Only starred saves" />
-                <Button Classes="seg" Classes.on="{Binding IsFilterRenamed}" Content="{Binding RenamedLabel}" Command="{Binding ShowRenamedCommand}"
-                        ToolTip.Tip="Only saves with a name of their own" />
-                <Button Classes="seg" Classes.on="{Binding IsFilterDuplicates}" Content="{Binding DuplicateLabel}" Command="{Binding ShowDuplicatesCommand}"
+              <!-- a filter (what the list shows), separate from the selection links above (what's ticked). Show all spans the row
+                   unless there are duplicates, which then take its other half; Starred and Renamed share the row below -->
+              <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" Margin="0,0,-4,0">
+                <Button Classes="seg" Classes.on="{Binding IsFilterAll}" Content="Show all" Command="{Binding ShowAllCommand}"
+                        Grid.ColumnSpan="{Binding ShowAllSpan}" />
+                <Button Grid.Column="1" Classes="seg" Classes.on="{Binding IsFilterDuplicates}" Content="{Binding DuplicateLabel}" Command="{Binding ShowDuplicatesCommand}"
                         IsVisible="{Binding HasDuplicateSaves}" ToolTip.Tip="Only saves that exist more than once" />
-              </UniformGrid>
+                <Button Grid.Row="1" Classes="seg starFilter" Classes.on="{Binding IsFilterStarred}" Content="{Binding StarredLabel}" Command="{Binding ShowStarredCommand}"
+                        ToolTip.Tip="Only starred saves" />
+                <Button Grid.Row="1" Grid.Column="1" Classes="seg" Classes.on="{Binding IsFilterRenamed}" Content="{Binding RenamedLabel}" Command="{Binding ShowRenamedCommand}"
+                        ToolTip.Tip="Only saves with a name of their own" />
+              </Grid>
               <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Classes="faint" Text="{Binding CheckedCount, StringFormat='{}{0} selected'}" VerticalAlignment="Center" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal">

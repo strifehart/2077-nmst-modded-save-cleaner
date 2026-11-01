@@ -255,11 +255,13 @@ public sealed partial class MainViewModel : ObservableObject
     private int _renamedCount;
     public string RenamedLabel => $"Renamed {RenamedCount}";
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DuplicateLabel), nameof(HasDuplicateSaves))]
+    [NotifyPropertyChangedFor(nameof(DuplicateLabel), nameof(HasDuplicateSaves), nameof(ShowAllSpan))]
     private int _duplicateCount;
     public string DuplicateLabel => $"Duplicates {DuplicateCount}";
     /// <summary>The Duplicates filter only shows up when there are copies.</summary>
     public bool HasDuplicateSaves => DuplicateCount > 0 || IsFilterDuplicates;
+    /// <summary>Show all takes the whole first row of filters, or half of it when the Duplicates filter is there.</summary>
+    public int ShowAllSpan => HasDuplicateSaves ? 1 : 2;
 
     partial void OnFilterChanged(ListFilter value) { OpenFilteredGroups(); RebuildRows(); }
 
@@ -599,9 +601,11 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
         if (IsBusy) return;
-        if (todo.Count > 1 && !await _platform.ConfirmAsync("Clean modded tag",
-                $"Clean {todo.Count} saves? Each is backed up first."
-                + (skip > 0 ? $"\n\n{skip} already clean save{(skip == 1 ? " is" : "s are")} skipped." : ""), "Clean"))
+        long bytes = todo.Sum(t => t.Info.SizeBytes);
+        var lowSpace = SpaceWarning(bytes);
+        if ((todo.Count > 1 || lowSpace is not null) && !await _platform.ConfirmAsync("Clean modded tag",
+                $"Clean {(todo.Count == 1 ? todo[0].Name : $"{todo.Count} saves")}? Each is backed up first ({UpTo(bytes)})."
+                + (skip > 0 ? $"\n\n{skip} already clean save{(skip == 1 ? " is" : "s are")} skipped." : ""), "Clean", lowSpace))
             return;
 
         Log.Info($"Clean modded tag: {targets.Count} selected, {todo.Count} to clean, {skip} already clean");
@@ -652,6 +656,13 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var targets = (IsBatch ? _all.Where(i => i.IsChecked) : Focused is null ? [] : [Focused]).Where(i => i.IsReadable).ToList();
         if (targets.Count == 0 || IsBusy) return;
+        long bytes = targets.Sum(t => t.Info.SizeBytes);
+        var lowSpace = SpaceWarning(bytes);
+        // one save from its own panel backs up straight away; a batch (or too little space) asks first
+        if ((targets.Count > 1 || lowSpace is not null) && !await _platform.ConfirmAsync(targets.Count == 1 ? "Back up save" : "Back up saves",
+                $"Back up {(targets.Count == 1 ? targets[0].Name : $"{targets.Count} saves")} ({UpTo(bytes)})? A save that already has an identical backup isn't copied again.",
+                "Back up", lowSpace))
+            return;
         BeginBusy("Backing up…");
         int made = 0, already = 0, failed = 0;
         try
@@ -989,7 +1000,7 @@ public sealed partial class MainViewModel : ObservableObject
             "Restore selected saves",
             $"{targets.Count} selected save{(targets.Count == 1 ? " has" : "s have")} backups."
             + (without > 0 ? $" {without} {(without == 1 ? "has" : "have")} none and {(without == 1 ? "is" : "are")} left out." : ""),
-            plan, OptionsFor, Plan));
+            plan, OptionsFor, Plan, currentSize: CurrentSize));
     }
 
     [RelayCommand(CanExecute = nameof(CanUndoLastBatch))]
@@ -1002,8 +1013,27 @@ public sealed partial class MainViewModel : ObservableObject
         await ReviewAndRestoreAsync(new RestoreReviewViewModel(
             "Undo the last " + what,
             $"Puts {batch.Saves.Count} save{(batch.Saves.Count == 1 ? "" : "s")} back as {(batch.Saves.Count == 1 ? "it was" : "they were")} before the {what} on {Format.DateTime(batch.TimeUtc.ToLocalTime())}.",
-            plan, OptionsFor, null));
+            plan, OptionsFor, null, currentSize: CurrentSize));
     }
+
+    /// <summary>"up to 23,6 MB": the most new backups can take. A save with an identical backup already isn't copied again.</summary>
+    private static string UpTo(long bytes) => "up to " + Format.Size(bytes);
+
+    /// <summary>A warning when the backups drive has less free space than the backups can need; null when there's room (or it can't tell).</summary>
+    private string? SpaceWarning(long bytes)
+    {
+        try
+        {
+            var root = Path.GetPathRoot(Path.GetFullPath(BackupsRoot));
+            if (string.IsNullOrEmpty(root)) return null;
+            long free = new DriveInfo(root).AvailableFreeSpace;
+            return free < bytes ? $"Only {Format.Size(free)} free on {root.TrimEnd('\\', '/')}, and these backups can need {Format.Size(bytes)}." : null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException) { return null; }
+    }
+
+    private long CurrentSize(string name) =>
+        _all.FirstOrDefault(i => string.Equals(i.Name, name, StringComparison.OrdinalIgnoreCase))?.Info.SizeBytes ?? 0;
 
     private async Task ReviewAndRestoreAsync(RestoreReviewViewModel review)
     {

@@ -52,12 +52,15 @@ public sealed partial class RestoreReviewViewModel : ObservableObject
     private readonly Func<RestoreRule, IReadOnlyList<RestorePlanEntry>>? _replan;
     private readonly Func<RestorePlanEntry, IReadOnlyList<RestoreOption>> _options;
     private readonly TaskCompletionSource<bool> _done = new();
+    private readonly Func<string, long>? _currentSize;
 
     /// <param name="replan">Re-plans for another rule (bulk restore); null for an undo, which has no rule.</param>
+    /// <param name="currentSize">Size of a save as it is now, by folder name: each one is backed up before it's restored.</param>
     public RestoreReviewViewModel(string title, string intro, IReadOnlyList<RestorePlanEntry> plan,
         Func<RestorePlanEntry, IReadOnlyList<RestoreOption>> options, Func<RestoreRule, IReadOnlyList<RestorePlanEntry>>? replan,
-        RestoreRule rule = RestoreRule.UndoCleaning)
+        RestoreRule rule = RestoreRule.UndoCleaning, Func<string, long>? currentSize = null)
     {
+        _currentSize = currentSize;
         Title = title;
         Intro = intro;
         _options = options;
@@ -97,7 +100,10 @@ public sealed partial class RestoreReviewViewModel : ObservableObject
 
     public int RestoreCount => NeedsLook.Concat(Ready).Count(r => r.IsIncluded);
     public string ConfirmText => RestoreCount == 1 ? "Restore 1 save" : $"Restore {RestoreCount} saves";
-    public string Summary => $"{RestoreCount} to restore · {NeedsLook.Concat(Ready).Count(r => !r.IsIncluded) + Skipped.Count} left as they are";
+    public string Summary => $"{RestoreCount} to restore · {NeedsLook.Concat(Ready).Count(r => !r.IsIncluded) + Skipped.Count} left as they are"
+        + (BackupBytes > 0 ? $" · up to {Format.Size(BackupBytes)} of backups" : "");
+    /// <summary>The most the "Before restore" backups of the included saves can take.</summary>
+    public long BackupBytes => _currentSize is null ? 0 : NeedsLook.Concat(Ready).Where(r => r.IsIncluded).Sum(r => _currentSize(r.Name));
 
     /// <summary>The rows the user kept, with the backup each one gets.</summary>
     public IReadOnlyList<(string Name, BackupInfo Backup)> Chosen =>

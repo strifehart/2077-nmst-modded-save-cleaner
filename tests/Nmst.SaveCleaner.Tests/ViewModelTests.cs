@@ -92,6 +92,9 @@ public class ViewModelTests
 
         Assert.Single(platform.Confirms);
         Assert.Contains("1 already clean save is skipped", platform.Confirms[0]);
+        // the confirmation says how much the backups can take: the two saves being cleaned
+        long cleaning = new[] { tagged, sticky }.Sum(d => SaveScanner.Read(d).SizeBytes);
+        Assert.Contains($"Each is backed up first (up to {Format.Size(cleaning)})", platform.Confirms[0]);
         foreach (var dir in Directory.GetDirectories(t.Saves))
         {
             var info = SaveScanner.Read(dir);
@@ -144,5 +147,28 @@ public class ViewModelTests
         Assert.Equal(backups, f.BackupsBytes);
         Assert.EndsWith($" · {Format.Size(f.Info.SizeBytes + backups)} with backups", f.BuildLine);
         Assert.Equal(Format.Size(f.Info.SizeBytes + backups), Assert.Single(f.BuildDetails, d => d.Label == "With backups").Value);
+    }
+
+    [Fact]
+    public async Task Batch_backup_asks_first_with_the_size_one_save_does_not()
+    {
+        var a = RealSaves.Find((m, s) => m.IsModded);
+        var b = RealSaves.Find((m, s) => !m.IsModded);
+        if (a is null || b is null) return;
+        using var t = new TempDir();
+        t.CopySave(a); t.CopySave(b);
+        var platform = new FakePlatform();
+        var vm = new MainViewModel(platform, t.Saves, t.Backups, null) { MinBusyTime = TimeSpan.Zero };
+        await vm.ReloadCommand.ExecuteAsync(null);
+        await WaitForFlags(vm);
+
+        await vm.BackupCheckedCommand.ExecuteAsync(null);              // the focused save, from its panel
+        Assert.Empty(platform.Confirms);
+
+        vm.SelectAllCommand.Execute(null);
+        await Task.Delay(50);
+        await vm.BackupCheckedCommand.ExecuteAsync(null);
+        long both = new[] { a, b }.Sum(d => SaveScanner.Read(d).SizeBytes);
+        Assert.StartsWith($"Back up 2 saves (up to {Format.Size(both)})?", Assert.Single(platform.Confirms));
     }
 }
