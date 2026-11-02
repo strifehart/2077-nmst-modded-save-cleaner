@@ -175,6 +175,14 @@ public class RenameStarTests
         var notes = new SaveNotes(Path.Combine(t.Root, "saves.json"));
         Assert.True(notes.IsStarred(SaveScanner.Read(a)));
         Assert.False(notes.IsStarred(SaveScanner.Read(b)));
+
+        // deleting one copy leaves no duplicates: the filter goes back to all saves and its button goes
+        vm.FocusSaveCommand.Execute(ib);
+        await vm.DeleteFocusedCommand.ExecuteAsync(null);
+        Assert.Equal(0, vm.DuplicateCount);
+        Assert.Equal(MainViewModel.ListFilter.All, vm.Filter);
+        Assert.False(vm.HasDuplicateSaves);
+        Assert.Equal(2, vm.ShowAllSpan);
     }
 
     private static async Task<T> WaitFor<T>(Func<T?> get) where T : class

@@ -24,7 +24,9 @@ The plugin stops *new* saves from being tagged. This app cleans the ones that al
 - Star saves and filter the list to just the starred ones. Stars live in the app's `saves.json`, never in the saves
 - Renames saves: the new name is what the game's Load menu shows. Only the folder is renamed (dates kept, nothing
   inside changes), backups follow, and *Reset name* puts the game's name back. *Keep this autosave* (or quicksave) moves an
-  auto/quick save out of the slot the game reuses
+  auto/quick save out of the slot the game reuses. A renamed save behaves like an autosave or quicksave in game: it
+  can be loaded, but the Save menu only offers `ManualSave-` slots to save over, so saving from it creates the next
+  ManualSave
 - Never keeps two identical backups of a save, and marks the ones it always keeps: **Original** (the save as the
   game wrote it, before the app cleaned it), **Manual** and **Undo**. *Backups → Clean up backups…* reviews the
   rest (Before restore copies, backups of deleted saves, older auto/quick slot saves, copies identical to the save)

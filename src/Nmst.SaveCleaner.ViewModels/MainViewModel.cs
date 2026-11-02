@@ -228,6 +228,8 @@ public sealed partial class MainViewModel : ObservableObject
         StarredCount = _all.Count(i => i.IsStarred);
         RenamedCount = _all.Count(i => i.IsRenamed);
         DuplicateCount = _all.Count(i => i.HasDuplicates);
+        // the last duplicate is gone (deleted, or its copy renamed away): back to all saves, and the filter button goes
+        if (DuplicateCount == 0 && Filter == ListFilter.Duplicates) Filter = ListFilter.All;
     }
 
     [ObservableProperty] private bool _noMatches;
@@ -238,7 +240,8 @@ public sealed partial class MainViewModel : ObservableObject
     public enum ListFilter { All, Starred, Renamed, Duplicates }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsFilterAll), nameof(IsFilterStarred), nameof(IsFilterRenamed), nameof(IsFilterDuplicates), nameof(ShowStarredOnly))]
+    [NotifyPropertyChangedFor(nameof(IsFilterAll), nameof(IsFilterStarred), nameof(IsFilterRenamed), nameof(IsFilterDuplicates), nameof(ShowStarredOnly),
+        nameof(HasDuplicateSaves), nameof(ShowAllSpan))]
     private ListFilter _filter;
     public bool IsFilterAll => Filter == ListFilter.All;
     public bool IsFilterStarred => Filter == ListFilter.Starred;
