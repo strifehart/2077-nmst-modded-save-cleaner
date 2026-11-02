@@ -29,7 +29,7 @@ public sealed partial class RenameDialogViewModel : ObservableObject
     public string OriginalNote => Original.Length > 0
         ? $"Original name: {Original}"
         : "";
-    public string CloudNote => "If this is your latest cloud save, the old name can show in the Load menu until you save again.";
+    public string CloudNote => "With cloud saves on (Steam, GOG Galaxy), the cloud can bring back a copy under the old name.";
 
     [ObservableProperty] private string _name;
     [ObservableProperty] private string _error = "";

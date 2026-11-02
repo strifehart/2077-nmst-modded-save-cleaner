@@ -775,7 +775,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (!await _platform.ConfirmAsync(items.Count == 1 ? "Delete save" : "Delete saves",
                 $"Move {what} to the trash? Deleted saves (the bin next to Backups) has {(items.Count == 1 ? "it" : "them")} if you change your mind."
                 + (ponr > 0 ? $"\n\n{(items.Count == 1 ? "This is a point-of-no-return save" : $"{ponr} of these are point-of-no-return saves")}: the game's ending saves go back to {(ponr == 1 ? "it" : "them")}." : "")
-                + "\n\nCloud sync removes deleted saves from the cloud too.",
+                + $"\n\nWith cloud saves on (Steam, GOG Galaxy), the cloud can put {(items.Count == 1 ? "it" : "them")} back the next time it syncs.",
                 "Delete"))
             return;
 

@@ -20,7 +20,9 @@ The plugin stops *new* saves from being tagged. This app cleans the ones that al
   that have more than one restore point, then restore
 - Undoes the last clean or restore in one go, leaving out saves the game has written to since
 - Deletes saves to the app's trash (the bin button next to *Backups*), where they can be restored with their dates or
-  deleted for good. A name the game has reused since is never overwritten: the save comes back as "… restored"
+  deleted for good. A name the game has reused since is never overwritten: the save comes back as "… restored".
+  With cloud saves on (Steam, GOG Galaxy), the cloud only knows the game's own names: it can put deleted saves back,
+  and bring a renamed save back as a copy under its old name, the next time it syncs
 - Star saves and filter the list to just the starred ones. Stars live in the app's `saves.json`, never in the saves
 - Renames saves: the new name is what the game's Load menu shows. Only the folder is renamed (dates kept, nothing
   inside changes), backups follow, and *Reset name* puts the game's name back. *Keep this autosave* (or quicksave) moves an
