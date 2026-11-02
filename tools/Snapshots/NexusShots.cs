@@ -214,8 +214,8 @@ static class NexusShots
         typeof(CommunityToolkit.Mvvm.ComponentModel.ObservableObject).GetMethod("OnPropertyChanged", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance, [typeof(string)])!
             .Invoke(vm, [nameof(MainViewModel.LogCount)]);
         Pump();
-        // the footer shows the real saves folder, not the temp copy
-        foreach (var t in w.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Text == vm.SavesFolder)) t.Text = realSaves;
+        // the footer shows the usual saves folder, not the temp copy (the source may be a backup of it)
+        foreach (var t in w.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Text == vm.SavesFolder)) t.Text = SaveScanner.DefaultSavesFolder;
         foreach (var b in w.GetVisualDescendants().OfType<Button>().Where(b => b.Content as string == "Use default")) b.IsVisible = false;
         Pump();
         w.CaptureRenderedFrame()?.Save(Path.Combine(outDir, name + ".png"));
